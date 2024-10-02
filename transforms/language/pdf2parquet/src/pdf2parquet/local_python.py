@@ -16,7 +16,7 @@ import sys
 
 from data_processing.runtime.pure_python import PythonTransformLauncher
 from data_processing.utils import ParamsUtils
-from pdf2parquet_transform_python import Pdf2ParquetPythonTransformConfiguration
+from pdf2parquet.transform_python import Pdf2ParquetPythonTransformConfiguration
 
 
 # create parameters

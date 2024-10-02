@@ -24,7 +24,7 @@ from data_processing_ray.runtime.ray import RayTransformLauncher
 from data_processing_ray.runtime.ray.runtime_configuration import (
     RayTransformRuntimeConfiguration,
 )
-from pdf2parquet_transform import (
+from pdf2parquet.transform import (
     Pdf2ParquetTransform,
     Pdf2ParquetTransformConfiguration,
 )

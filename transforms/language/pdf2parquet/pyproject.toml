@@ -1,5 +1,5 @@
 [project]
-name = "dpk_pdf2parquet_transform_python"
+name = "dpk_pdf2parquet_transform"
 version = "0.2.2.dev0"
 requires-python = ">=3.10"
 description = "PDF2PARQUET Python Transform"
@@ -31,8 +31,10 @@ dev = [
     "markupsafe==2.0.1",
 ]
 
-[options]
-package_dir = ["src","test"]
+[tool.setuptools.package-dir]
+pdf2parquet = "src/pdf2parquet"
+pdf2parquet_ray = "src/pdf2parquet_ray"
+
 
 [options.packages.find]
 where = ["src/"]

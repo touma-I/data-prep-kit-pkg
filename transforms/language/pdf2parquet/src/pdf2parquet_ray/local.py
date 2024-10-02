@@ -16,7 +16,7 @@ import sys
 
 from data_processing.utils import ParamsUtils
 from data_processing_ray.runtime.ray import RayTransformLauncher
-from pdf2parquet_transform_ray import Pdf2ParquetRayTransformConfiguration
+from pdf2parquet_ray.transform import Pdf2ParquetRayTransformConfiguration
 
 
 # create parameters

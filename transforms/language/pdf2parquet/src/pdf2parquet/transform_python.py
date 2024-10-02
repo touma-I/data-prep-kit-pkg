@@ -17,7 +17,7 @@ from data_processing.runtime.pure_python.runtime_configuration import (
     PythonTransformRuntimeConfiguration,
 )
 from data_processing.utils import get_logger
-from pdf2parquet_transform import Pdf2ParquetTransformConfiguration
+from pdf2parquet.transform import Pdf2ParquetTransformConfiguration
 
 
 logger = get_logger(__name__)

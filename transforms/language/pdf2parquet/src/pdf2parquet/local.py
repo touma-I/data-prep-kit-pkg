@@ -13,7 +13,7 @@
 import os
 
 from data_processing.data_access import DataAccessLocal
-from pdf2parquet_transform import Pdf2ParquetTransform
+from pdf2parquet.transform import Pdf2ParquetTransform
 
 
 # create parameters
