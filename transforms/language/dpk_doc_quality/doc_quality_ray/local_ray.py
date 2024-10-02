@@ -20,32 +20,24 @@ from doc_quality_transform import (
     doc_content_column_cli_param,
     text_lang_cli_param,
 )
-from doc_quality_transform_ray import DocQualityRayTransformConfiguration
+from doc_quality_ray.transform import DocQualityRayTransformConfiguration
 
 
-print(os.environ)
 # create parameters
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
-s3_cred = {
-    "access_key": "localminioaccesskey",
-    "secret_key": "localminiosecretkey",
-    "url": "http://localhost:9000",
-}
-s3_conf = {
-    "input_folder": "test/doc_quality/input",
-    "output_folder": "test/doc_quality/output",
+input_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "test-data", "input"))
+output_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "output"))
+local_conf = {
+    "input_folder": input_folder,
+    "output_folder": output_folder,
 }
 worker_options = {"num_cpus": 0.8}
 code_location = {"github": "github", "commit_hash": "12345", "path": "path"}
-model_path = os.path.join(basedir, "models")
-if not os.path.exists(model_path):
-    model_path = os.path.abspath(os.path.join(basedir, "..", "models"))
 params = {
     # where to run
     "run_locally": True,
     # Data access. Only required parameters are specified
-    "data_s3_cred": ParamsUtils.convert_to_ast(s3_cred),
-    "data_s3_config": ParamsUtils.convert_to_ast(s3_conf),
+    "data_local_config": ParamsUtils.convert_to_ast(local_conf),
     # orchestrator
     "runtime_worker_options": ParamsUtils.convert_to_ast(worker_options),
     "runtime_num_workers": 3,
@@ -58,9 +50,6 @@ params = {
     doc_content_column_cli_param: "contents",
     bad_word_filepath_cli_param: os.path.join(basedir, "ldnoobw", "en"),
 }
-# for arg in sys.argv:
-#     print(arg)
-
 if __name__ == "__main__":
     # Set the simulated command line args
     sys.argv = ParamsUtils.dict_to_req(d=params)

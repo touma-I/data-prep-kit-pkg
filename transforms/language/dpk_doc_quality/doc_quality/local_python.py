@@ -13,37 +13,36 @@
 import os
 import sys
 
+from data_processing.runtime.pure_python import PythonTransformLauncher
 from data_processing.utils import ParamsUtils
-from data_processing_ray.runtime.ray import RayTransformLauncher
-from doc_quality_transform import (
+from doc_quality.transform import (
     bad_word_filepath_cli_param,
     doc_content_column_cli_param,
     text_lang_cli_param,
 )
-from doc_quality_transform_ray import DocQualityRayTransformConfiguration
+from doc_quality.transform_python import DocQualityPythonTransformConfiguration
+
 
 
 # create parameters
-basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
-input_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "test-data", "input"))
-output_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "output"))
+basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "."))
+input_folder = os.path.abspath(os.path.join(basedir, "../test-data", "input"))
+output_folder = os.path.abspath(os.path.join(basedir, "..", "output"))
 local_conf = {
     "input_folder": input_folder,
     "output_folder": output_folder,
 }
-worker_options = {"num_cpus": 0.8}
 code_location = {"github": "github", "commit_hash": "12345", "path": "path"}
+model_path = os.path.join(basedir, "models")
+if not os.path.exists(model_path):
+    model_path = os.path.abspath(os.path.join(basedir, "..", "models"))
+
 params = {
-    # where to run
-    "run_locally": True,
     # Data access. Only required parameters are specified
     "data_local_config": ParamsUtils.convert_to_ast(local_conf),
-    # orchestrator
-    "runtime_worker_options": ParamsUtils.convert_to_ast(worker_options),
-    "runtime_num_workers": 3,
+    # execution info
     "runtime_pipeline_id": "pipeline_id",
     "runtime_job_id": "job_id",
-    "runtime_creation_delay": 0,
     "runtime_code_location": ParamsUtils.convert_to_ast(code_location),
     # doc_quality params
     text_lang_cli_param: "en",
@@ -54,6 +53,6 @@ if __name__ == "__main__":
     # Set the simulated command line args
     sys.argv = ParamsUtils.dict_to_req(d=params)
     # create launcher
-    launcher = RayTransformLauncher(DocQualityRayTransformConfiguration())
+    launcher = PythonTransformLauncher(runtime_config=DocQualityPythonTransformConfiguration())
     # Launch the ray actor(s) to process the input
     launcher.launch()

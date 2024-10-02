@@ -22,8 +22,8 @@
 import re
 import string
 
-from cc_net_prepro import unicode_normalization
-from doc_quality_utils import load_bad_words
+from doc_quality.cc_net_prepro import unicode_normalization
+from doc_quality.utils import load_bad_words
 
 
 TRANSLATION_TABLE_PUNCTUATION = str.maketrans("", "", string.punctuation)

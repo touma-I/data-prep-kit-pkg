@@ -16,7 +16,7 @@ from data_processing.runtime.pure_python import PythonTransformLauncher
 from data_processing.test_support.launch.transform_test import (
     AbstractTransformLauncherTest,
 )
-from doc_quality_transform_python import DocQualityPythonTransformConfiguration
+from doc_quality.transform_python import DocQualityPythonTransformConfiguration
 
 
 class TestPythonDocQualityTransform(AbstractTransformLauncherTest):
@@ -26,14 +26,14 @@ class TestPythonDocQualityTransform(AbstractTransformLauncherTest):
     """
 
     def get_test_transform_fixtures(self) -> list[tuple]:
-        basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../doc_quality"))
 
         cli_params = {
             "docq_text_lang": "en",
             "docq_doc_content_column": "contents",
             "docq_bad_word_filepath": os.path.join(basedir, "ldnoobw", "en"),
         }
-        basedir = os.path.abspath(os.path.join(basedir, "test-data"))
+        basedir = os.path.abspath(os.path.join(basedir, "../test-data"))
         fixtures = []
         launcher = PythonTransformLauncher(DocQualityPythonTransformConfiguration())
         fixtures.append((launcher, cli_params, os.path.join(basedir, "input"), os.path.join(basedir, "expected")))

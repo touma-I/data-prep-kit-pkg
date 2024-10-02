@@ -15,7 +15,7 @@ from data_processing.test_support.launch.transform_test import (
     AbstractTransformLauncherTest,
 )
 from data_processing_ray.runtime.ray import RayTransformLauncher
-from doc_quality_transform_ray import DocQualityRayTransformConfiguration
+from doc_quality_ray.transform import DocQualityRayTransformConfiguration
 
 
 class TestRayDocQualityTransform(AbstractTransformLauncherTest):

@@ -17,7 +17,7 @@ from data_processing.test_support.transform.table_transform_test import (
     AbstractTableTransformTest,
 )
 from data_processing.transform import get_transform_config
-from doc_quality_transform import DocQualityTransform, DocQualityTransformConfiguration
+from doc_quality.transform import DocQualityTransform, DocQualityTransformConfiguration
 
 
 class TestDocQualityTransform(AbstractTableTransformTest):
@@ -27,7 +27,7 @@ class TestDocQualityTransform(AbstractTableTransformTest):
     """
 
     def get_test_transform_fixtures(self) -> list[tuple]:
-        basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
+        basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../doc_quality/"))
         cli = [
             "--docq_text_lang",
             "en",

@@ -10,21 +10,20 @@
 # limitations under the License.
 ################################################################################
 
-import pyarrow as pa
-from data_processing.utils import get_logger
-from data_processing_ray.runtime.ray import RayTransformLauncher
-from data_processing_ray.runtime.ray.runtime_configuration import (
-    RayTransformRuntimeConfiguration,
+from data_processing.runtime.pure_python import PythonTransformLauncher
+from data_processing.runtime.pure_python.runtime_configuration import (
+    PythonTransformRuntimeConfiguration,
 )
-from doc_quality_transform import DocQualityTransformConfiguration
+from data_processing.utils import get_logger
+from doc_quality.transform import DocQualityTransformConfiguration
 
 
 logger = get_logger(__name__)
 
 
-class DocQualityRayTransformConfiguration(RayTransformRuntimeConfiguration):
+class DocQualityPythonTransformConfiguration(PythonTransformRuntimeConfiguration):
     """
-    Implements the RayTransformConfiguration for Document Quality as required by the RayTransformLauncher.
+    Implements the PythonTransformConfiguration for Document Quality as required by the PythonTransformLauncher.
     Document Quality does not use a RayRuntime class so the superclass only needs the base
     python-only configuration.
     """
@@ -38,6 +37,6 @@ class DocQualityRayTransformConfiguration(RayTransformRuntimeConfiguration):
 
 
 if __name__ == "__main__":
-    launcher = RayTransformLauncher(DocQualityRayTransformConfiguration())
+    launcher = PythonTransformLauncher(DocQualityPythonTransformConfiguration())
     logger.info("Launching doc_quality transform")
     launcher.launch()

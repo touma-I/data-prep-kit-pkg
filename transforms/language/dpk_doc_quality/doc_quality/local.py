@@ -13,7 +13,7 @@
 import os
 
 from data_processing.data_access import DataAccessLocal
-from doc_quality_transform import (
+from doc_quality.transform import (
     DocQualityTransform,
     bad_word_filepath_key,
     doc_content_column_key,
@@ -22,13 +22,15 @@ from doc_quality_transform import (
 
 
 # create parameters
-basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
-input_folder = os.path.join(basedir, "test-data", "input")
+basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "."))
+input_folder = os.path.join(basedir, "../test-data", "input")
 doc_quality_params = {
     text_lang_key: "en",
     doc_content_column_key: "contents",
     bad_word_filepath_key: os.path.join(basedir, "ldnoobw", "en"),
 }
+print(doc_quality_params)
+print (input_folder)
 if __name__ == "__main__":
     # Here we show how to run outside of the runtime
     # Create and configure the transform.

@@ -1,0 +1,52 @@
+[tool.poetry]
+package-mode = true
+name = "dpk-doc-quality"
+version = "0.2.2.dev0"
+description = "Document Quality Python Transform"
+license = "Apache-2.0"
+readme = "README.md"
+authors = [
+    "Daiki Tsuzuku <dtsuzuku@jp.ibm.com>",
+]
+
+
+# Needed so we do not pull in kfp nor test
+packages = [{include = "doc_quality"},
+            {include = "doc_quality_ray"},
+]
+
+include = [
+    { path = "doc_quality/ldnoobw", format = ["sdist", "wheel"] }
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.dependencies]
+python = "^3.10, < 3.12"
+data-prep-toolkit="^0.2.1"
+data-prep-toolkit-ray={ version="^0.2.1", optional=true }
+
+[tool.poetry.dev-dependencies]
+twine="*"
+pytest="^7.3.2"
+pytest-dotenv="^0.5.2"
+pytest-env="^1.0.0"
+pre-commit="^3.3.2"
+pytest-cov="^4.1.0"
+pytest-mock="^3.10.0"
+moto="5.0.5"
+markupsafe="^2.0.1"
+
+[tool.poetry.extras]
+########################################################################
+#poetry install --dry-run -E ray   or   pip install dpk-doc_quality[ray]
+#########################################################################
+ray = ["data-prep-toolkit-ray"]
+
+[tool.pytest.ini_options]
+# Currently we use low coverage since we have to run tests separately (see makefile)
+#addopts = "--cov --cov-report term-missing --cov-fail-under 25"
+markers = ["unit: unit tests", "integration: integration tests"]
+
