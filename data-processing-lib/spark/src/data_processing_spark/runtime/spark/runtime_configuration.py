@@ -12,7 +12,7 @@
 
 from typing import Any
 
-from data_processing.data_access import DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.runtime import TransformRuntimeConfiguration
 from data_processing.transform import TransformConfiguration
 from data_processing_spark.runtime.spark import DefaultSparkTransformRuntime
@@ -32,7 +32,7 @@ class SparkTransformRuntimeConfiguration(TransformRuntimeConfiguration):
         super().__init__(transform_config=transform_config)
         self.runtime_class = runtime_class
 
-    def get_bcast_params(self, data_access_factory: DataAccessFactoryBase) -> dict[str, Any]:
+    def get_bcast_params(self, data_access_factory: DataAccessFactory) -> dict[str, Any]:
         """Allows retrieving and broadcasting to all the workers very large
         configuration parameters, like the list of document IDs to remove for
         fuzzy dedup, or the list of blocked web domains for block listing.  This

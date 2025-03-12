@@ -17,7 +17,7 @@ import traceback
 from datetime import datetime
 
 import yaml
-from data_processing.data_access import DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.transform import TransformStatistics, AbstractFolderTransform
 from data_processing.utils import GB, get_logger
 from data_processing_spark.runtime.spark import (
@@ -76,7 +76,7 @@ def _init_spark(runtime_config: SparkTransformRuntimeConfiguration) -> SparkSess
 def orchestrate(
     runtime_config: SparkTransformRuntimeConfiguration,
     execution_configuration: SparkTransformExecutionConfiguration,
-    data_access_factory: DataAccessFactoryBase,
+    data_access_factory: DataAccessFactory,
 ) -> int:
     """
     orchestrator for transformer execution

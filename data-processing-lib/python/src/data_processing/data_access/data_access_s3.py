@@ -10,6 +10,7 @@
 # limitations under the License.
 ################################################################################
 
+import os
 import gzip
 import json
 from typing import Any
@@ -26,8 +27,7 @@ class DataAccessS3(DataAccess):
 
     def __init__(
         self,
-        s3_credentials: dict[str, str],
-        s3_config: dict[str, str] = None,
+        config: dict[str, str] = None,
         d_sets: list[str] = None,
         checkpoint: bool = False,
         m_files: int = -1,
@@ -48,24 +48,29 @@ class DataAccessS3(DataAccess):
         """
         super().__init__(d_sets=d_sets, checkpoint=checkpoint, m_files=m_files, n_samples=n_samples,
                          files_to_use=files_to_use, files_to_checkpoint=files_to_checkpoint)
+
+        access_key=config.get("access_key",
+                                os.environ.get("S3_ACCESS_KEY", None))
+        secret_key=config.get("secret_key",
+                                    os.environ.get("S3_SECRET_KEY", None))
+
         if (
-            s3_credentials is None
-            or s3_credentials.get("access_key", None) is None
-            or s3_credentials.get("secret_key", None) is None
+            access_key is None
+            or secret_key is None
         ):
             raise "S3 credentials is not defined"
-        self.s3_credentials = s3_credentials
-        if s3_config is None:
+
+        if config is None:
             self.input_folder = None
             self.output_folder = None
         else:
-            self.input_folder = TransformUtils.clean_path(s3_config["input_folder"])
-            self.output_folder = TransformUtils.clean_path(s3_config["output_folder"])
+            self.input_folder = TransformUtils.clean_path(config["input_folder"])
+            self.output_folder = TransformUtils.clean_path(config["output_folder"])
         self.arrS3 = ArrowS3(
-            access_key=s3_credentials.get("access_key"),
-            secret_key=s3_credentials.get("secret_key"),
-            endpoint=s3_credentials.get("url", None),
-            region=s3_credentials.get("region", None),
+            access_key=access_key,
+            secret_key=secret_key,
+            endpoint=config.get("url", None),
+            region=config.get("region", None),
         )
 
     def get_output_folder(self) -> str:

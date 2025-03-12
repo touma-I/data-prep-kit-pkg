@@ -12,7 +12,7 @@
 
 from typing import Any
 
-from data_processing.data_access import DataAccessFactoryBase, DataAccess
+from data_processing.data_access import DataAccessFactory, DataAccess
 from data_processing.transform import TransformStatistics
 
 
@@ -37,7 +37,7 @@ class DefaultSparkTransformRuntime:
         raise NotImplemented()
 
     def get_transform_config(
-        self, partition: int, data_access_factory: DataAccessFactoryBase, statistics: TransformStatistics
+        self, partition: int, data_access_factory: DataAccessFactory, statistics: TransformStatistics
     ) -> dict[str, Any]:
         """
         Get the dictionary of configuration that will be provided to the transform's initializer.
@@ -50,7 +50,7 @@ class DefaultSparkTransformRuntime:
         """
         return self.params
 
-    def get_bcast_params(self, data_access_factory: DataAccessFactoryBase) -> dict[str, Any]:
+    def get_bcast_params(self, data_access_factory: DataAccessFactory) -> dict[str, Any]:
         """Allows retrieving and broadcasting to all the workers very large
         configuration parameters, like the list of document IDs to remove for
         fuzzy dedup, or the list of blocked web domains for block listing. This

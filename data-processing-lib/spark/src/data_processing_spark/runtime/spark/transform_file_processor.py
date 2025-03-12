@@ -12,7 +12,7 @@
 
 from typing import Any
 
-from data_processing.data_access import DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.runtime import AbstractTransformFileProcessor
 from data_processing.transform import TransformStatistics
 from data_processing_spark.runtime.spark import SparkTransformRuntimeConfiguration
@@ -26,7 +26,7 @@ class SparkTransformFileProcessor(AbstractTransformFileProcessor):
 
     def __init__(
         self,
-        data_access_factory: DataAccessFactoryBase,
+        data_access_factory: DataAccessFactory,
         runtime_configuration: SparkTransformRuntimeConfiguration,
         statistics: TransformStatistics,
         is_folder: bool,

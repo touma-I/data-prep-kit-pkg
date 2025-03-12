@@ -11,7 +11,7 @@
 ################################################################################
 import time
 
-from data_processing.data_access import DataAccessFactory, DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.runtime.transform_launcher import AbstractTransformLauncher
 from data_processing.utils import get_logger
 from data_processing_spark.runtime.spark import (
@@ -32,7 +32,7 @@ class SparkTransformLauncher(AbstractTransformLauncher):
     def __init__(
         self,
         runtime_config: SparkTransformRuntimeConfiguration,
-        data_access_factory: DataAccessFactoryBase = DataAccessFactory(),
+        data_access_factory: DataAccessFactory = DataAccessFactory(),
     ):
         """
         Creates driver
