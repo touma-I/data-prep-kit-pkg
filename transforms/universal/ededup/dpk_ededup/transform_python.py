@@ -13,7 +13,7 @@ import sys
 from argparse import Namespace
 from typing import Any
 
-from data_processing.data_access import DataAccessFactoryBase, SnapshotUtils
+from data_processing.data_access import DataAccessFactory, SnapshotUtils
 from data_processing.runtime.pure_python import (
     DefaultPythonTransformRuntime,
     PythonTransformLauncher,
@@ -70,7 +70,7 @@ class EdedupRuntime(DefaultPythonTransformRuntime):
         self.logger = get_logger(__name__)
 
     def get_transform_config(
-        self, data_access_factory: DataAccessFactoryBase, statistics: TransformStatistics, files: list[str]
+        self, data_access_factory: DataAccessFactory, statistics: TransformStatistics, files: list[str]
     ) -> dict[str, Any]:
         """
         Get the dictionary of configuration that will be provided to the transform's initializer.

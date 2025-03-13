@@ -16,7 +16,7 @@ from argparse import ArgumentParser, Namespace
 from typing import Any
 
 import pyarrow as pa
-from data_processing.data_access import DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.transform import AbstractTableTransform, TransformConfiguration
 from data_processing.utils import CLIArgumentProvider, get_logger, str2bool
 from data_processing_ray.runtime.ray import DefaultRayTransformRuntime, RayUtils
@@ -220,7 +220,7 @@ class RepoLevelOrderRuntime(DefaultRayTransformRuntime):
 
     def get_transform_config(
         self,
-        data_access_factory: DataAccessFactoryBase,
+        data_access_factory: DataAccessFactory,
         statistics: ActorHandle,
         files: list[str],
     ) -> dict[str, Any]:

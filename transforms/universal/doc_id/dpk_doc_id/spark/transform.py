@@ -14,7 +14,7 @@ from argparse import ArgumentParser, Namespace
 from typing import Any
 
 import pyarrow as pa
-from data_processing.data_access import DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.transform import (
     AbstractTableTransform,
     TransformConfiguration,
@@ -151,7 +151,7 @@ class DocIDSparkTransformRuntime(DefaultSparkTransformRuntime):
         super().__init__(params)
 
         def get_transform_config(
-            self, partition: int, data_access_factory: DataAccessFactoryBase, statistics: TransformStatistics
+            self, partition: int, data_access_factory: DataAccessFactory, statistics: TransformStatistics
         ) -> dict[str, Any]:
             """
             Get the dictionary of configuration that will be provided to the transform's initializer.

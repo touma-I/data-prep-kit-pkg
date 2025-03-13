@@ -20,7 +20,7 @@ from dpk_fdedup.data_cleaning.transform import (
     duplicate_list_location_default,
     duplicate_list_location_key,
 )
-from data_processing.data_access import DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.transform import TransformStatistics
 from data_processing.utils import get_logger
 from data_processing_spark.runtime.spark import (
@@ -43,7 +43,7 @@ class DataCleaningSparkRuntime(DefaultSparkTransformRuntime):
         self.logger = get_logger(__name__)
 
     def get_transform_config(
-        self, partition: int, data_access_factory: DataAccessFactoryBase, statistics: TransformStatistics
+        self, partition: int, data_access_factory: DataAccessFactory, statistics: TransformStatistics
     ) -> dict[str, Any]:
         """
         Download the table of duplicate document ids that will be provided to the
@@ -94,7 +94,7 @@ class DataCleaningSparkTransformConfiguration(SparkTransformRuntimeConfiguration
             runtime_class=DataCleaningSparkRuntime,
         )
 
-    def get_bcast_params(self, data_access_factory: DataAccessFactoryBase) -> dict[str, Any]:
+    def get_bcast_params(self, data_access_factory: DataAccessFactory) -> dict[str, Any]:
         """
         Download the table of duplicate document ids that will be provided to the
         filtering/annotation method. This is the opportunity for this runtime to

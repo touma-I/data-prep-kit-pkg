@@ -32,7 +32,7 @@ class DataAccessLocal(DataAccess):
 
     def __init__(
         self,
-        local_config: dict[str, str] = None,
+        config: dict[str, str] = None,
         d_sets: list[str] = None,
         checkpoint: bool = False,
         m_files: int = -1,
@@ -52,12 +52,12 @@ class DataAccessLocal(DataAccess):
         """
         super().__init__(d_sets=d_sets, checkpoint=checkpoint, m_files=m_files, n_samples=n_samples,
                          files_to_use=files_to_use, files_to_checkpoint=files_to_checkpoint)
-        if local_config is None:
+        if config is None:
             self.input_folder = None
             self.output_folder = None
         else:
-            self.input_folder = os.path.abspath(local_config["input_folder"])
-            self.output_folder = os.path.abspath(local_config["output_folder"])
+            self.input_folder = os.path.abspath(config["input_folder"])
+            self.output_folder = os.path.abspath(config["output_folder"])
 
         logger.debug(f"Local input folder: {self.input_folder}")
         logger.debug(f"Local output folder: {self.output_folder}")
@@ -67,6 +67,7 @@ class DataAccessLocal(DataAccess):
         logger.debug(f"Local n_samples: {self.n_samples}")
         logger.debug(f"Local files_to_use: {self.files_to_use}")
         logger.debug(f"Local files_to_checkpoint: {self.files_to_checkpoint}")
+        
 
     def get_output_folder(self) -> str:
         """

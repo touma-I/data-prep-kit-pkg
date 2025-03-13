@@ -13,7 +13,7 @@ import sys
 from typing import Any
 
 import ray
-from data_processing.data_access import DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.utils import ParamsUtils, UnrecoverableException
 from data_processing_ray.runtime.ray import (
     DefaultRayTransformRuntime,
@@ -73,7 +73,7 @@ class DocIDRayRuntime(DefaultRayTransformRuntime):
         self.id_generator = None
 
     def get_transform_config(
-        self, data_access_factory: DataAccessFactoryBase, statistics: ActorHandle, files: list[str]
+        self, data_access_factory: DataAccessFactory, statistics: ActorHandle, files: list[str]
     ) -> dict[str, Any]:
         """
         Set environment for filter execution

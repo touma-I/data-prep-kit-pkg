@@ -15,7 +15,7 @@ import traceback
 from datetime import datetime
 
 import ray
-from data_processing.data_access import DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.transform import AbstractFolderTransform
 from data_processing_ray.runtime.ray import (
     RayTransformExecutionConfiguration,
@@ -30,7 +30,7 @@ from ray.util import ActorPool
 @ray.remote(num_cpus=1, scheduling_strategy="SPREAD")
 def orchestrate(
     preprocessing_params: RayTransformExecutionConfiguration,
-    data_access_factory: DataAccessFactoryBase,
+    data_access_factory: DataAccessFactory,
     runtime_config: RayTransformRuntimeConfiguration,
 ) -> int:
     """

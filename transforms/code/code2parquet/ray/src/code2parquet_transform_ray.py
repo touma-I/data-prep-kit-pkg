@@ -21,7 +21,7 @@ from code2parquet_transform import (
     supported_langs_file_key,
     supported_languages_key,
 )
-from data_processing.data_access import DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing_ray.runtime.ray import (
     DefaultRayTransformRuntime,
     RayTransformLauncher,
@@ -83,7 +83,7 @@ class CodeToParquetRuntime(DefaultRayTransformRuntime):
 
     def get_transform_config(
         self,
-        data_access_factory: DataAccessFactoryBase,
+        data_access_factory: DataAccessFactory,
         statistics: ActorHandle,
         files: list[str],
     ) -> dict[str, Any]:

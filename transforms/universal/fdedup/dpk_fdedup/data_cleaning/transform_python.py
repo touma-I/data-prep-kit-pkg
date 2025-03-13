@@ -20,7 +20,7 @@ from dpk_fdedup.data_cleaning.transform import (
     duplicate_list_location_default,
     duplicate_list_location_key,
 )
-from data_processing.data_access import DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.runtime.pure_python import PythonTransformLauncher
 from data_processing.runtime.pure_python.runtime_configuration import (
     DefaultPythonTransformRuntime,
@@ -43,7 +43,7 @@ class DataCleaningPythonRuntime(DefaultPythonTransformRuntime):
         self.logger = get_logger(__name__)
 
     def get_transform_config(
-        self, data_access_factory: DataAccessFactoryBase, statistics: TransformStatistics, files: list[str]
+        self, data_access_factory: DataAccessFactory, statistics: TransformStatistics, files: list[str]
     ) -> dict[str, Any]:
         """
         Download the table of duplicate document ids that will be provided to the

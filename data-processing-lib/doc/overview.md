@@ -29,7 +29,7 @@ following class/interfaces are provided:
 runtime interfacee expected to be implemented by each runtime ([python](python-runtime.md)
   [ray](ray-runtime.md), [spark](spark-runtime.md), etc.) to apply a transform to a set of data.
   It is configured with a `TransformRuntimeConfiguration` and a `DataAccessFactory` instance (see below).
-* [DataAccessFactory](../python/src/data_processing/data_access/data_access_factory_base.py) - is
+* [DataAccessFactory](../python/src/data_processing/data_access/data_access_factory.py) - is
 used to configure the input and output data files to be processed and creates
 the `DataAccess` instance (see below) according to the CLI parameters.
 * [TransformRuntimeConfiguration](../python/src/data_processing/runtime/runtime_configuration.py) - captures

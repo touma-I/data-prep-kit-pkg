@@ -12,7 +12,7 @@
 
 from typing import Any
 
-from data_processing.data_access import DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.utils import UnrecoverableException
 from data_processing.transform import TransformStatistics
 from data_processing_spark.runtime.spark import SparkTransformLauncher
@@ -67,7 +67,7 @@ class ProfilerRuntime(DefaultSparkTransformRuntime):
         self.logger = get_logger(__name__)
 
     def get_transform_config(
-            self, partition: int, data_access_factory: DataAccessFactoryBase, statistics: TransformStatistics
+            self, partition: int, data_access_factory: DataAccessFactory, statistics: TransformStatistics
     ) -> dict[str, Any]:
         """
         Get the dictionary of configuration that will be provided to the transform's initializer.

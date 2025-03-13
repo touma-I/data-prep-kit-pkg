@@ -15,7 +15,7 @@ import sys
 import time
 
 import ray
-from data_processing.data_access import DataAccessFactory, DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.runtime.transform_launcher import AbstractTransformLauncher
 from data_processing.utils import get_logger, str2bool
 from data_processing_ray.runtime.ray import (
@@ -36,7 +36,7 @@ class RayTransformLauncher(AbstractTransformLauncher):
     def __init__(
         self,
         runtime_config: RayTransformRuntimeConfiguration,
-        data_access_factory: DataAccessFactoryBase = DataAccessFactory(),
+        data_access_factory: DataAccessFactory = DataAccessFactory(),
     ):
         """
         Creates driver

@@ -13,7 +13,7 @@ import sys
 from argparse import Namespace
 from typing import Any
 
-from data_processing.data_access import DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.runtime.pure_python import (
     DefaultPythonTransformRuntime,
     PythonTransformLauncher,
@@ -81,7 +81,7 @@ class DocIDRuntime(DefaultPythonTransformRuntime):
         self.id_generator = None
 
     def get_transform_config(
-        self, data_access_factory: DataAccessFactoryBase, statistics: TransformStatistics, files: list[str]
+        self, data_access_factory: DataAccessFactory, statistics: TransformStatistics, files: list[str]
     ) -> dict[str, Any]:
         """
         Get the dictionary of configuration that will be provided to the transform's initializer.

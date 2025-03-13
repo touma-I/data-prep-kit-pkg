@@ -15,7 +15,7 @@ from argparse import ArgumentParser, Namespace
 from typing import Any
 
 import ray
-from data_processing.data_access import DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.utils import ParamsUtils, CLIArgumentProvider, TransformUtils, UnrecoverableException
 from data_processing_ray.runtime.ray import (
     DefaultRayTransformRuntime,
@@ -96,7 +96,7 @@ class ProfilerRuntime(DefaultRayTransformRuntime):
         self.logger = get_logger(__name__)
 
     def get_transform_config(
-        self, data_access_factory: DataAccessFactoryBase, statistics: ActorHandle, files: list[str]
+        self, data_access_factory: DataAccessFactory, statistics: ActorHandle, files: list[str]
     ) -> dict[str, Any]:
         """
         Set environment for transform execution

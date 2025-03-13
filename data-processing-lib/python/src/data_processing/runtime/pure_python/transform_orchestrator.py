@@ -17,7 +17,7 @@ from datetime import datetime
 from multiprocessing import Pool
 from typing import Any
 
-from data_processing.data_access import DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.runtime.pure_python import (
     PythonPoolTransformFileProcessor,
     PythonTransformExecutionConfiguration,
@@ -49,7 +49,7 @@ def _execution_resources() -> dict[str, Any]:
 
 
 def orchestrate(
-    data_access_factory: DataAccessFactoryBase,
+    data_access_factory: DataAccessFactory,
     runtime_config: PythonTransformRuntimeConfiguration,
     execution_config: PythonTransformExecutionConfiguration,
 ) -> int:
@@ -161,7 +161,7 @@ def orchestrate(
 def _process_transforms(
     files: list[str],
     print_interval: int,
-    data_access_factory: DataAccessFactoryBase,
+    data_access_factory: DataAccessFactory,
     statistics: TransformStatistics,
     transform_params: dict[str, Any],
     transform_class: type[AbstractTransform],
@@ -208,7 +208,7 @@ def _process_transforms_multiprocessor(
     files: list[str],
     size: int,
     print_interval: int,
-    data_access_factory: DataAccessFactoryBase,
+    data_access_factory: DataAccessFactory,
     transform_params: dict[str, Any],
     transform_class: type[AbstractTransform],
     is_folder: bool

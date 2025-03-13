@@ -13,7 +13,7 @@ import time
 import traceback
 from typing import Any
 
-from data_processing.data_access import DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.utils import TransformUtils, UnrecoverableException, get_logger
 
 
@@ -24,7 +24,7 @@ class AbstractTransformFileProcessor:
 
     def __init__(
         self,
-        data_access_factory: DataAccessFactoryBase,
+        data_access_factory: DataAccessFactory,
         transform_parameters: dict[str, Any],
         is_folder: bool = False,
     ):

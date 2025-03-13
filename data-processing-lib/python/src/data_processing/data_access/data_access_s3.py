@@ -54,18 +54,20 @@ class DataAccessS3(DataAccess):
         secret_key=config.get("secret_key",
                                     os.environ.get("S3_SECRET_KEY", None))
 
+        self.logger.info(f">>> access_key: {access_key} secret_key: {secret_key}")
         if (
             access_key is None
             or secret_key is None
         ):
             raise "S3 credentials is not defined"
 
-        if config is None:
-            self.input_folder = None
-            self.output_folder = None
-        else:
-            self.input_folder = TransformUtils.clean_path(config["input_folder"])
-            self.output_folder = TransformUtils.clean_path(config["output_folder"])
+        self.input_folder = None
+        self.output_folder = None
+        if config is not None:
+            if 'input_folder' in config:
+                self.input_folder = TransformUtils.clean_path(config["input_folder"])
+            if 'output_folder' in config:
+                self.output_folder = TransformUtils.clean_path(config["output_folder"])
         self.arrS3 = ArrowS3(
             access_key=access_key,
             secret_key=secret_key,

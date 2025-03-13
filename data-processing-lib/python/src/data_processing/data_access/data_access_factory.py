@@ -12,18 +12,18 @@
 
 import argparse
 import ast
-from typing import Union
+import uuid
+from typing import Union, Any
+import importlib
 
 from data_processing.data_access import (
     DataAccess,
-    DataAccessFactoryBase,
-    DataAccessLocal,
-    DataAccessS3,
 )
-from data_processing.utils import ParamsUtils, str2bool
+
+from data_processing.utils import ParamsUtils, str2bool, get_logger
 
 
-class DataAccessFactory(DataAccessFactoryBase):
+class DataAccessFactory():
     """
     This class is accepting Data Access parameters, validates them and instantiates an appropriate
     Data Access class based on these parameters.
@@ -43,10 +43,35 @@ class DataAccessFactory(DataAccessFactoryBase):
         in get_input_params() will include the prefix.  The underlying AST or other values of those
         keys is not effected by the prefix.
         """
-        super().__init__(cli_arg_prefix=cli_arg_prefix)
-        self.s3_config = None
-        self.local_config = None
+        #super().__init__(cli_arg_prefix=cli_arg_prefix)
+        #self.s3_cred = None
+        self.checkpointing = False
+        self.dsets = None
+        self.max_files = -1
+        self.n_samples = -1
+        self.files_to_use = []
+        self.files_to_checkpoint = []
+        self.cli_arg_prefix = cli_arg_prefix
+        self.params = {}
+        self.logger = get_logger(__name__ + str(uuid.uuid4()))
+
+        self.config = None
         self.enable_data_navigation = enable_data_navigation
+
+    def _validate_config(self, config: dict[str, str]) -> bool:
+        """
+        Validate that
+        :param config: dictionary has at a minimum input and output foder
+        :return: True if config is valid, False otherwise
+        """
+        valid_config = True
+        if config.get("input_folder", "") == "":
+            valid_config = False
+            self.logger.error(f"data access factory {self.cli_arg_prefix}: Could not find input folder in data access config")
+        if config.get("output_folder", "") == "":
+            valid_config = False
+            self.logger.error(f"data access factory {self.cli_arg_prefix}: Could not find output folder in data access config")
+        return valid_config
 
     def add_input_params(self, parser: argparse.ArgumentParser) -> None:
         """
@@ -65,6 +90,9 @@ class DataAccessFactory(DataAccessFactoryBase):
             "url": ["https://s3.us-east.cloud-object-storage.appdomain.cloud", "optional s3 url"],
             "region": ["us-east-1", "optional s3 region"],
         }
+
+        ## Need to phase out s3_cred. Should be done via Env Variable
+        ## Kept her for backward compatibility until we migrate all current transforms
         parser.add_argument(
             f"--{self.cli_arg_prefix}s3_cred",
             type=ast.literal_eval,
@@ -87,6 +115,7 @@ class DataAccessFactory(DataAccessFactoryBase):
                 "Path to output folder of processed files",
             ],
         }
+        ## Need to phase out s3_config. Kept her for backward compatibility until we migrate all current transforms
         parser.add_argument(
             f"--{self.cli_arg_prefix}s3_config",
             type=ast.literal_eval,
@@ -97,11 +126,19 @@ class DataAccessFactory(DataAccessFactoryBase):
             "input_folder": ["./input", "Path to input folder of files to be processed"],
             "output_folder": ["/tmp/output", "Path to output folder of processed files"],
         }
+        ## Need to phase out local_config. Kept her for backward compatibility until we migrate all current transforms
         parser.add_argument(
             f"--{self.cli_arg_prefix}local_config",
             type=ast.literal_eval,
             default=None,
             help="ast string containing input/output folders using local fs.\n"
+            + ParamsUtils.get_ast_help_text(help_example_dict),
+        )
+        parser.add_argument(
+            f"--{self.cli_arg_prefix}config",
+            type=ast.literal_eval,
+            default=None,
+            help="ast string containing configuration parameters for data access class including input/output folders, credentials, etc.\n"
             + ParamsUtils.get_ast_help_text(help_example_dict),
         )
         parser.add_argument(
@@ -138,6 +175,20 @@ class DataAccessFactory(DataAccessFactoryBase):
             f"--{self.cli_arg_prefix}num_samples", type=int, default=-1, help="number of random input files to process"
         )
 
+        parser.add_argument(
+            f"--{self.cli_arg_prefix}access_class",
+            type=str,
+            required=False,
+            help="ClassName that implements DataAccess API",
+        )
+        parser.add_argument(
+            f"--{self.cli_arg_prefix}access_module", 
+            type=str, 
+            required=False,
+            help="Module that implements DataAccess Class",
+        )
+
+
     def apply_input_params(self, args: Union[dict, argparse.Namespace]) -> bool:
         """
         Validate data access specific parameters
@@ -151,115 +202,106 @@ class DataAccessFactory(DataAccessFactoryBase):
             arg_dict = args
         else:
             raise ValueError("args must be Namespace or dictionary")
-        s3_cred = arg_dict.get(f"{self.cli_arg_prefix}s3_cred", None)
+
+        ## We need to phase out s3_cred. If credentials are needed, they should be passed as an environment variable
+        self.s3_cred = arg_dict.get(f"{self.cli_arg_prefix}s3_cred", None)
+        ## We need to phase out local_config and s3_config. For now, keep it for backward compatibility
         s3_config = arg_dict.get(f"{self.cli_arg_prefix}s3_config", None)
-        local_config = arg_dict.get(f"{self.cli_arg_prefix}local_config", None)
-        checkpointing = arg_dict.get(f"{self.cli_arg_prefix}checkpointing", False)
-        max_files = arg_dict.get(f"{self.cli_arg_prefix}max_files", -1)
-        data_sets = arg_dict.get(f"{self.cli_arg_prefix}data_sets", None)
-        n_samples = arg_dict.get(f"{self.cli_arg_prefix}num_samples", -1)
-        files_to_use = arg_dict.get(f"{self.cli_arg_prefix}files_to_use", [".parquet"])
-        files_to_checkpoint = arg_dict.get(f"{self.cli_arg_prefix}files_to_checkpoint", [".parquet"])
-        # check which configuration (S3 or Local) is specified
-        s3_config_specified = 1 if s3_config is not None else 0
-        local_config_specified = 1 if local_config is not None else 0
+        local_config= arg_dict.get(f"{self.cli_arg_prefix}local_config", None)
+        self.config = arg_dict.get(f"{self.cli_arg_prefix}config", None)
+        if self.config is None:
+            if s3_config is not None:
+                self.config = s3_config
+            else:
+                self.config = local_config
+        if self.config is not None and self.s3_cred is not None:
+                self.config = self.config | self.s3_cred
 
-        # check that only one (S3 or Local) configuration is specified
-        if s3_config_specified + local_config_specified > 1:
-            self.logger.error(
-                f"data factory {self.cli_arg_prefix} "
-                f"{'S3, ' if s3_config_specified == 1 else ''}"
-                f"{'Local ' if local_config_specified == 1 else ''}"
-                "configurations specified, but only one configuration expected"
-            )
+        self.logger.info(f">>>> {arg_dict}")
+        self.logger.info(f">>>> data factory {self.cli_arg_prefix}config: {self.config}")
+
+        self.checkpointing = arg_dict.get(f"{self.cli_arg_prefix}checkpointing", False)
+        self.max_files = arg_dict.get(f"{self.cli_arg_prefix}max_files", -1)
+        self.dsets = arg_dict.get(f"{self.cli_arg_prefix}data_sets", None)
+        self.n_samples = arg_dict.get(f"{self.cli_arg_prefix}num_samples", -1)
+        self.files_to_use = arg_dict.get(f"{self.cli_arg_prefix}files_to_use", [".parquet"])
+        self.files_to_checkpoint = arg_dict.get(f"{self.cli_arg_prefix}files_to_checkpoint", [".parquet"])
+        self.data_access_class=arg_dict.get(f"{self.cli_arg_prefix}acccess_class", None)
+        self.data_access_module=arg_dict.get(f"{self.cli_arg_prefix}acccess_module", None)
+        if self.data_access_class is None and self.data_access_module is None:
+            self.data_access_module='data_processing.data_access.data_access_local'
+            self.data_access_class='DataAccessLocal'
+
+        # Check input/output folders are specificed
+        if self.config is not None and not self._validate_config(self.config):
             return False
-
-        # further validate the specified configuration (S3 or Local)
-        if s3_config_specified == 1:
-            if not self._validate_s3_config(s3_config=s3_config):
-                return False
-            self.s3_cred = s3_cred
-            # S3 config requires S3 credentials
-            if not self._validate_s3_cred(s3_credentials=self.s3_cred):
-                return False
-            self.s3_config = s3_config
-            self.logger.info(
-                f"data factory {self.cli_arg_prefix} is using S3 data access: "
-                f'input path - {self.s3_config["input_folder"]}, '
-                f'output path - {self.s3_config["output_folder"]}'
-            )
-        elif local_config_specified == 1:
-            if not self._validate_local_config(local_config=local_config):
-                return False
-            self.local_config = local_config
-            self.logger.info(
-                f"data factory {self.cli_arg_prefix} is using local data access: "
-                f"input_folder - {self.local_config['input_folder']} "
-                f"output_folder - {self.local_config['output_folder']}"
-            )
-        elif s3_cred is not None:
-            if not self._validate_s3_cred(s3_credentials=s3_cred):
-                return False
-            self.s3_cred = s3_cred
-            self.logger.info(f"data factory {self.cli_arg_prefix} is using s3 configuration without input/output path")
-        else:
-            self.logger.info(
-                f"data factory {self.cli_arg_prefix} " f"is using local configuration without input/output path"
-            )
-
+        
         # Check whether both max_files and number samples are defined
-        self.logger.info(f"data factory {self.cli_arg_prefix} max_files {max_files}, n_sample {n_samples}")
-        if max_files > 0 and n_samples > 0:
+        self.logger.info(f"data factory {self.cli_arg_prefix} max_files {self.max_files}, n_sample {self.n_samples}")
+        if self.max_files > 0 and self.n_samples > 0:
             self.logger.error(
                 f"data factory {self.cli_arg_prefix} "
-                f"Both max files {max_files} and random samples {n_samples} are defined. Only one allowed at a time"
+                f"Both max files {self.max_files} and random samples {self.n_samples} are defined. Only one allowed at a time"
             )
             return False
-        self.checkpointing = checkpointing
-        self.max_files = max_files
-        self.n_samples = n_samples
-        self.files_to_use = files_to_use
-        self.files_to_checkpoint = files_to_checkpoint
-        self.dsets = data_sets
-        if data_sets is None or len(data_sets) < 1:
+        if self.dsets is None or len(self.dsets) < 1:
             self.logger.info(
                 f"data factory {self.cli_arg_prefix} "
-                f"Not using data sets, checkpointing {checkpointing}, max files {max_files}, "
-                f"random samples {n_samples}, files to use {files_to_use}, files to checkpoint {files_to_checkpoint}"
+                f"Not using data sets, checkpointing {self.checkpointing}, max files {self.max_files}, "
+                f"random samples {self.n_samples}, files to use {self.files_to_use}, files to checkpoint {self.files_to_checkpoint}"
             )
         else:
             self.logger.info(
                 f"data factory {self.cli_arg_prefix} "
-                f"Using data sets {self.dsets}, checkpointing {checkpointing}, max files {max_files}, "
-                f"random samples {n_samples}, files to use {files_to_use}, files to checkpoint {files_to_checkpoint}"
+                f"Using data sets {self.dsets}, checkpointing {self.checkpointing}, max files {self.max_files}, "
+                f"random samples {self.n_samples}, files to use {self.files_to_use}, files to checkpoint {self.files_to_checkpoint}"
             )
         return True
+    
+
+    def get_input_params(self) -> dict[str, Any]:
+        """
+        get input parameters for job_input_params for metadata
+        :return: dictionary of params
+        """
+        params = {
+            "checkpointing": self.checkpointing,
+            "max_files": self.max_files,
+            "random_samples": self.n_samples,
+            "files_to_use": self.files_to_use,
+        }
+        if self.dsets is not None:
+            params["data sets"] = self.dsets
+        return params
+
+
 
     def create_data_access(self) -> DataAccess:
         """
         Create data access based on the parameters
         :return: corresponding data access class
         """
-        if self.s3_config is not None or self.s3_cred is not None:
-            # If S3 config or S3 credential are specified, its S3
-            return DataAccessS3(
-                s3_credentials=self.s3_cred,
-                s3_config=self.s3_config,
+        try:
+            if self.data_access_module:
+                data_access=getattr(importlib.import_module(self.data_access_module), self.data_access_class)
+            else:
+                data_access=globals().get(self.data_access_class)
+            return data_access(
+                config=self.config,
                 d_sets=self.dsets,
                 checkpoint=self.checkpointing,
                 m_files=self.max_files,
                 n_samples=self.n_samples,
                 files_to_use=self.files_to_use,
-                files_to_checkpoint=self.files_to_checkpoint,
+                files_to_checkpoint=self.files_to_checkpoint
             )
-        else:
-            # anything else is local data
-            return DataAccessLocal(
-                local_config=self.local_config,
-                d_sets=self.dsets,
-                checkpoint=self.checkpointing,
-                m_files=self.max_files,
-                n_samples=self.n_samples,
-                files_to_use=self.files_to_use,
-                files_to_checkpoint=self.files_to_checkpoint,
-            )
+        except ImportError:
+            self.logger.error(f"Failed to import module {self.data_access_module}")
+            raise
+        except AttributeError:
+            self.logger.error(f"Class {self.data_access_class}  Not found")
+            raise
+        except Exception:
+            self.logger.error(f"Failed to create data access instance {self.data_access_module}.{self.data_access_class}")
+            raise
+

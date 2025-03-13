@@ -14,7 +14,7 @@ import sys
 from typing import Any
 import argparse
 
-from data_processing.data_access import DataAccessFactory, DataAccessFactoryBase
+from data_processing.data_access import DataAccessFactory
 from data_processing.runtime import TransformRuntimeConfiguration
 from data_processing.utils import ParamsUtils, get_logger
 
@@ -26,7 +26,7 @@ class AbstractTransformLauncher:
     def __init__(
         self,
         runtime_config: TransformRuntimeConfiguration,
-        data_access_factory: DataAccessFactoryBase = DataAccessFactory(),
+        data_access_factory: DataAccessFactory = DataAccessFactory(),
     ):
         """
         Creates driver

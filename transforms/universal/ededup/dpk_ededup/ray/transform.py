@@ -16,7 +16,7 @@ from argparse import ArgumentParser, Namespace
 from typing import Any
 
 import ray
-from data_processing.data_access import DataAccessFactoryBase, SnapshotUtils
+from data_processing.data_access import DataAccessFactory, SnapshotUtils
 from data_processing.utils import ParamsUtils, TransformUtils, UnrecoverableException
 from data_processing_ray.runtime.ray import (
     DefaultRayTransformRuntime,
@@ -109,7 +109,7 @@ class EdedupRayRuntime(DefaultRayTransformRuntime):
         self.logger = get_logger(__name__)
 
     def get_transform_config(
-        self, data_access_factory: DataAccessFactoryBase, statistics: ActorHandle, files: list[str]
+        self, data_access_factory: DataAccessFactory, statistics: ActorHandle, files: list[str]
     ) -> dict[str, Any]:
         """
         Set environment for transform execution
@@ -131,7 +131,7 @@ class EdedupRayRuntime(DefaultRayTransformRuntime):
             self._load_snapshots(data_access_factory=data_access_factory, statistics=statistics)
         return {"hashes": self.filters} | self.params
 
-    def _load_snapshots(self, data_access_factory: DataAccessFactoryBase, statistics: ActorHandle) -> None:
+    def _load_snapshots(self, data_access_factory: DataAccessFactory, statistics: ActorHandle) -> None:
         """
         Load snapshots
         :param data_access_factory - data access factory
