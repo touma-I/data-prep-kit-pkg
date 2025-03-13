@@ -232,6 +232,7 @@ class DataAccessFactory():
             self.data_access_module='data_processing.data_access.data_access_local'
             self.data_access_class='DataAccessLocal'
 
+    
         # Check input/output folders are specificed
         if self.config is not None and not self._validate_config(self.config):
             return False

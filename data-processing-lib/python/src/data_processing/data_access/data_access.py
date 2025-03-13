@@ -47,6 +47,16 @@ class DataAccess:
         self.files_to_checkpoint = files_to_checkpoint
         self.logger = get_logger(__name__)
 
+    @classmethod
+    def validate(**kwargs) -> bool:
+        """
+        Run configuration parameter validation and can be enhanced by sub-classes to verify specific/additional configurations
+        This method implement the validation for the paramers required for ALL data access methods
+        Specific implementation of this can be overriden by its sublcass when dealing with parameters that are specific to the subclass
+        :return: False if missing any parameter
+        """
+        return True
+    
     def get_output_folder(self) -> str:
         """
         Get output folder as a string
