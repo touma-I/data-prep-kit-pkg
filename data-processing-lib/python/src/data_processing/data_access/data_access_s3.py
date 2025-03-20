@@ -58,33 +58,17 @@ class DataAccessS3(DataAccess):
         ):
             raise "S3 credentials is not defined"
 
-        self.input_folder = None
-        self.output_folder = None
         if config is not None:
             if 'input_folder' in config:
-                self.input_folder = TransformUtils.clean_path(config["input_folder"])
+                self.set_input_folder (TransformUtils.clean_path(config["input_folder"]))
             if 'output_folder' in config:
-                self.output_folder = TransformUtils.clean_path(config["output_folder"])
+                self.set_output_folder (TransformUtils.clean_path(config["output_folder"]))
         self.arrS3 = ArrowS3(
             access_key=access_key,
             secret_key=secret_key,
             endpoint=config.get("url", None),
             region=config.get("region", None),
         )
-
-    def get_output_folder(self) -> str:
-        """
-        Get output folder as a string
-        :return: output_folder
-        """
-        return self.output_folder
-
-    def get_input_folder(self) -> str:
-        """
-        Get input folder as a string
-        :return: input_folder
-        """
-        return self.input_folder
 
     def _list_files_folder(self, path: str) -> tuple[list[dict[str, Any]], int]:
         """

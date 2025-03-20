@@ -46,6 +46,9 @@ class DataAccess:
         self.files_to_use = files_to_use
         self.files_to_checkpoint = files_to_checkpoint
         self.logger = get_logger(__name__)
+        self.input_folder = None
+        self.output_folder = None
+
 
     @classmethod
     def validate(**kwargs) -> bool:
@@ -62,14 +65,16 @@ class DataAccess:
         Get output folder as a string
         :return: output_folder
         """
-        raise NotImplementedError("Subclasses should implement this!")
+        assert self.output_folder, "Output Folder has not been set yet"
+        return self.output_folder
 
     def get_input_folder(self) -> str:
         """
         Get input folder as a string
         :return: input_folder
         """
-        raise NotImplementedError("Subclasses should implement this!")
+        assert self.input_folder, "Input Folder has not been set yet"
+        return self.input_folder
 
     def get_random_file_set(self, n_samples: int, files: list[str]) -> list[str]:
         """
