@@ -49,12 +49,9 @@ class DataAccessS3(DataAccess):
         super().__init__(d_sets=d_sets, checkpoint=checkpoint, m_files=m_files, n_samples=n_samples,
                          files_to_use=files_to_use, files_to_checkpoint=files_to_checkpoint)
 
-        access_key=config.get("access_key",
-                                os.environ.get("S3_ACCESS_KEY", None))
-        secret_key=config.get("secret_key",
-                                    os.environ.get("S3_SECRET_KEY", None))
+        access_key=os.environ.get("S3_ACCESS_KEY", None)
+        secret_key=os.environ.get("S3_SECRET_KEY", None)
 
-        self.logger.info(f">>> access_key: {access_key} secret_key: {secret_key}")
         if (
             access_key is None
             or secret_key is None
