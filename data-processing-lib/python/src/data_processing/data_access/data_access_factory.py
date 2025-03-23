@@ -135,10 +135,10 @@ class DataAccessFactory():
             + ParamsUtils.get_ast_help_text(help_example_dict),
         )
         parser.add_argument(
-            f"--{self.cli_arg_prefix}config",
+            f"--{self.cli_arg_prefix}data_config",
             type=ast.literal_eval,
             default=None,
-            help="ast string containing configuration parameters for data access class including input/output folders, credentials, etc.\n"
+            help="ast string containing configuration parameters for data access class including input/output folders, etc.\n"
             + ParamsUtils.get_ast_help_text(help_example_dict),
         )
         parser.add_argument(
@@ -203,12 +203,10 @@ class DataAccessFactory():
         else:
             raise ValueError("args must be Namespace or dictionary")
 
-        ## We need to phase out s3_cred. If credentials are needed, they should be passed as an environment variable
-        self.s3_cred = arg_dict.get(f"{self.cli_arg_prefix}s3_cred", None)
         ## We need to phase out local_config and s3_config. For now, keep it for backward compatibility
         s3_config = arg_dict.get(f"{self.cli_arg_prefix}s3_config", None)
         local_config= arg_dict.get(f"{self.cli_arg_prefix}local_config", None)
-        self.config = arg_dict.get(f"{self.cli_arg_prefix}config", None)
+        self.config = arg_dict.get(f"{self.cli_arg_prefix}data_config", None)
         if self.config is None:
             if s3_config is not None:
                 self.config = s3_config
@@ -218,7 +216,7 @@ class DataAccessFactory():
                 self.config = self.config | self.s3_cred
 
         self.logger.info(f">>>> {arg_dict}")
-        self.logger.info(f">>>> data factory {self.cli_arg_prefix}config: {self.config}")
+        self.logger.info(f">>>> data factory {self.cli_arg_prefix}data_config: {self.config}")
 
         self.checkpointing = arg_dict.get(f"{self.cli_arg_prefix}checkpointing", False)
         self.max_files = arg_dict.get(f"{self.cli_arg_prefix}max_files", -1)

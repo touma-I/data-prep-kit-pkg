@@ -16,18 +16,32 @@ import json
 from typing import Any
 
 import pyarrow
-from data_processing.data_access import ArrowS3, DataAccess
+from data_processing.data_access import(
+    ArrowS3,
+    DataAccessFS,
+)
 from data_processing.utils import TransformUtils
 
 
-class DataAccessS3(DataAccess):
+class DPKConfigS3(DPKConfig):
+    S3_ACCESS_KEY = _get_first_env_var(["AWS_ACCESS_KEY_ID", "COS_ACCESS_KEY"])
+    """ Set from AWS_ACCESS_KEY_ID or COS_ACCESS_KEY env vars """
+    S3_SECRET_KEY = _get_first_env_var(["AWS_SECRET_ACCESS_KEY", "COS_SECRET_KEY"])
+    """ Set from AWS_SECRET_ACCESS_KEY or COS_SECRET_KEY env vars """
+    S3_ENDPOINT = _get_first_env_var(["S3_ENDPOINT","S3_URL"])
+    """ Set from COS URL """
+    S3_REGION = _get_first_env_var(["S3_REGION"], "us-east")
+    """ Set from East-region by default """
+
+
+class DataAccessS3(DataAccessFS):
     """
     Implementation of the Base Data access class for folder-based data access.
     """
 
     def __init__(
         self,
-        config: dict[str, str] = None,
+        config: dict[str, str] = {},
         d_sets: list[str] = None,
         checkpoint: bool = False,
         m_files: int = -1,
@@ -49,26 +63,33 @@ class DataAccessS3(DataAccess):
         super().__init__(d_sets=d_sets, checkpoint=checkpoint, m_files=m_files, n_samples=n_samples,
                          files_to_use=files_to_use, files_to_checkpoint=files_to_checkpoint)
 
-        access_key=os.environ.get("S3_ACCESS_KEY", None)
-        secret_key=os.environ.get("S3_SECRET_KEY", None)
-
+        access_key=config.get("access_key", DPKConfigS3.S3_ACCESS_KEY)
+        secret_key=config.get("secret_key", DPKConfigS3.S3_SECRET_KEY)
+        region = config.get("region", DPKConfigS3.S3_REGION)
+        endpoint=config.get("url", DPKConfigS3.S3_ENDPOINT)
+        
         if (
             access_key is None
             or secret_key is None
         ):
             raise "S3 credentials is not defined"
 
-        if config is not None:
-            if 'input_folder' in config:
-                self.set_input_folder (TransformUtils.clean_path(config["input_folder"]))
-            if 'output_folder' in config:
-                self.set_output_folder (TransformUtils.clean_path(config["output_folder"]))
+        if 'input_folder' in config:
+            self.input_folder  = TransformUtils.clean_path(config["input_folder"])
+        if 'output_folder' in config:
+            self.output_folder =  TransformUtils.clean_path(config["output_folder"])
         self.arrS3 = ArrowS3(
             access_key=access_key,
             secret_key=secret_key,
-            endpoint=config.get("url", None),
-            region=config.get("region", None),
+            endpoint=endpoint,
+            region=region,
         )
+
+    @classmethod
+    def validate(cls, **kwargs) -> bool:
+        valid = super(DataAccessS3, cls).validate(**kwargs)
+        valid = valid and os.environ.get('DataAccessS3.S3_ACCESS_KEY', None) is not None
+        valid = valid and os.environ.get('DataAccessS3.S3_SECRET_KEY', None) is not None
 
     def _list_files_folder(self, path: str) -> tuple[list[dict[str, Any]], int]:
         """

@@ -18,14 +18,14 @@ from typing import Any
 
 import pyarrow as pa
 import pyarrow.parquet as pq
-from data_processing.data_access import DataAccess
+from data_processing.data_access import DataAccessFS
 from data_processing.utils import get_logger
 
 
 logger = get_logger(__name__)
 
 
-class DataAccessLocal(DataAccess):
+class DataAccessLocal(DataAccessFS):
     """
     Implementation of the Base Data access class for local folder data access.
     """
@@ -93,6 +93,7 @@ class DataAccessLocal(DataAccess):
                 for s_name in self.d_sets:
                     if folder.endswith(s_name):
                         folders_to_use.append(folder)
+                        ## Stops at first match?!?! Is this how it is inteded ?
                         break
         return folders_to_use, 0
 

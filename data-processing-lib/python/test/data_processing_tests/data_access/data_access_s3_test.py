@@ -21,6 +21,9 @@ s3_cred = {
     "secret_key": "secret",
     "region": "us-east-1",
 }
+os.environ['DataAccessS3.S3_ACCESS_KEY']="access"
+os.environ['DataAccessS3.S3_SECRET_KEY']="secret"
+os.environ['DataAccessS3.S3_REGION']="us-east-1"
 
 s3_conf = {
     "input_folder": "test/table_read_write/input/",
@@ -48,7 +51,7 @@ def test_table_read_write():
     """
     with mock_aws():
         # create data access
-        d_a = DataAccessS3(config=s3_conf | s3_cred, d_sets=None, checkpoint=False, m_files=-1)
+        d_a = DataAccessS3(config=s3_conf, d_sets=None, checkpoint=False, m_files=-1)
         # populate bucket
         input_location = "test/table_read_write/input/"
         _create_and_populate_bucket(d_a=d_a, input_location=input_location, n_files=1)
@@ -81,7 +84,7 @@ def test_get_folder():
     """
     with mock_aws():
         # create data access
-        d_a = DataAccessS3(config=s3_cred, d_sets=None, checkpoint=False, m_files=-1)
+        d_a = DataAccessS3(config={}, d_sets=None, checkpoint=False, m_files=-1)
         # populate bucket
         input_location = "test/table_read_write/input/"
         _create_and_populate_bucket(d_a=d_a, input_location=input_location, n_files=3)
@@ -98,7 +101,7 @@ def test_files_to_process():
     """
     with mock_aws():
         # create data access
-        d_a = DataAccessS3(config= s3_cred | s3_conf, d_sets=None, checkpoint=False, m_files=-1)
+        d_a = DataAccessS3(config= s3_conf, d_sets=None, checkpoint=False, m_files=-1)
         # populate bucket
         _create_and_populate_bucket(d_a=d_a, input_location=f"{s3_conf['input_folder']}dataset=d1/", n_files=4)
         _create_and_populate_bucket(d_a=d_a, input_location=f"{s3_conf['input_folder']}dataset=d2/", n_files=4)
