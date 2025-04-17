@@ -22,17 +22,26 @@ from workflow_support.compile_utils import (
 )
 
 
-# The secret name containing the s3 credentials.
-S3_SECRET = "s3-secret"
+# Settings used for integration testing with lakehouse staging environment
+
+S3_SECRET = "cos-lh-access"
+DATA_CONFIG = {
+    "lh_environment": "STAGING",
+    "input_table": 'ibmdatapile.academic.ieee',
+    "input_dataset": "",
+    "input_version": "main",
+    'output_table': 'processed.ibmdatapile.academic.ieee.lh_tk2arrow_kfptest', 
+    "output_path": 'lh-test/tables/processed/ibmdatapile/academic/ieee/lh_tk2arrow_kfptest',
+    "da_class": 'dpk_data_access_lh.DataAccessLakeHouse',
+    "output_type": ["file"]
+}
+
+LAKEHOUSE_TOKEN = {"lh-token-touma": {"DPL_LAKEHOUSE_TOKEN": "lh-token"}}
+task_image = "quay.io/dataprep1/data-prep-kit/tokenization2arrow-ray:latest"
+base_kfp_image = "quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest"
 
 # the name of the job script
 EXEC_SCRIPT_NAME: str = "-m dpk_tokenization2arrow.ray.runtime"
-
-task_image = "quay.io/dataprep1/data-prep-kit/tokenization2arrow-ray:latest"
-
-# components
-base_kfp_image = "quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest"
-# path to kfp component specifications files
 
 # path to kfp component specifications files
 component_spec_path = os.getenv("KFP_COMPONENT_SPEC_PATH", DEFAULT_KFP_COMPONENT_SPEC_PATH)
@@ -47,6 +56,9 @@ def compute_exec_params_func(
     data_s3_config: str,
     data_max_files: int,
     data_num_samples: int,
+    data_checkpointing: bool,
+    data_data_sets: str,
+    data_files_to_use: str,
     runtime_pipeline_id: str,
     runtime_job_id: str,
     runtime_code_location: dict,
@@ -63,6 +75,9 @@ def compute_exec_params_func(
         "data_s3_config": data_s3_config,
         "data_max_files": data_max_files,
         "data_num_samples": data_num_samples,
+        "data_checkpointing": data_checkpointing,
+        "data_data_sets": data_data_sets.strip(),
+        "data_files_to_use": data_files_to_use,
         "runtime_num_workers": KFPUtils.default_compute_execution_params(str(worker_options), str(actor_options)),
         "runtime_worker_options": str(actor_options),
         "runtime_pipeline_id": runtime_pipeline_id,
@@ -99,7 +114,6 @@ if os.getenv("KFPv2", "0") == "1":
     run_id = uuid.uuid4().hex
 else:
     compute_exec_params_op = comp.create_component_from_func(func=compute_exec_params_func, base_image=base_kfp_image)
-    run_id = dsl.RUN_ID_PLACEHOLDER
 
 # create Ray cluster
 create_ray_op = comp.load_component_from_file(component_spec_path + "createRayClusterComponent.yaml")
@@ -121,22 +135,28 @@ def tokenization2arrow(
     ray_name: str = "tkn-kfp-ray",  # name of Ray cluster
     ray_run_id_KFPv2: str = "",   # Ray cluster unique ID used only in KFP v2
     # Add image_pull_secret and image_pull_policy to ray workers if needed
-    ray_head_options: dict = {"cpu": 1, "memory": 4, "image": task_image},
+    ray_head_options: dict = {"cpu": 2,
+                               "memory": 16, 
+                               "image": task_image,
+    },
     ray_worker_options: dict = {
         "replicas": 2,
         "max_replicas": 2,
         "min_replicas": 2,
         "cpu": 2,
-        "memory": 4,
+        "memory": 8,
         "image": task_image,
     },
     server_url: str = "http://kuberay-apiserver-service.kuberay.svc.cluster.local:8888",
     # data access
-    data_s3_config: str = "{'input_folder': 'test/tokenization/ds01/input/', 'output_folder': 'test/tokenization/ds01/output/'}",
-    data_s3_secret: str = S3_SECRET,
-    other_secrets: dict = {},
-    data_max_files: int = -1,
+    data_s3_config: str = str(DATA_CONFIG),
+    data_s3_access_secret: str = S3_SECRET,
+    other_secrets: dict = LAKEHOUSE_TOKEN,
+    data_max_files: int = 2,
     data_num_samples: int = -1,
+    data_checkpointing: bool = False,
+    data_data_sets: str = "",
+    data_files_to_use: str = "['.parquet']",
     # orchestrator
     runtime_actor_options: dict = {"num_cpus": 0.8},
     runtime_pipeline_id: str = "pipeline_id",
@@ -178,7 +198,7 @@ def tokenization2arrow(
         wait_job_ready_tmout - time to wait for job ready, sec
         wait_print_tmout - time between prints, sec
         http_retries - http retries for API server calls
-    :param data_s3_secret - s3 access secret
+    :param data_s3_access_secret - s3 access secret
     :param data_s3_config - s3 configuration
     :param data_max_files - max files to process
     :param data_num_samples - num samples to process
@@ -217,6 +237,9 @@ def tokenization2arrow(
             data_s3_config=data_s3_config,
             data_max_files=data_max_files,
             data_num_samples=data_num_samples,
+            data_checkpointing=data_checkpointing,
+            data_data_sets=data_data_sets,
+            data_files_to_use=data_files_to_use,
             runtime_pipeline_id=runtime_pipeline_id,
             runtime_job_id=run_id,
             runtime_code_location=runtime_code_location,
@@ -248,7 +271,7 @@ def tokenization2arrow(
             env2key = ComponentUtils.set_secret_key_to_env()
             kubernetes.use_secret_as_env(task=ray_cluster, secret_name=S3_SECRET, secret_key_to_env=env2key)
         else:
-            ComponentUtils.set_s3_env_vars_to_component(ray_cluster, data_s3_secret)
+            ComponentUtils.set_s3_env_vars_to_component(ray_cluster, data_s3_access_secret)
         ray_cluster.after(compute_exec_params)
         # Execute job
         execute_job = execute_ray_jobs_op(
@@ -268,9 +291,9 @@ def tokenization2arrow(
             env2key = ComponentUtils.set_secret_key_to_env()
             kubernetes.use_secret_as_env(task=execute_job, secret_name=S3_SECRET, secret_key_to_env=env2key)
         else:
-            ComponentUtils.set_s3_env_vars_to_component(execute_job, data_s3_secret)
+            ComponentUtils.set_s3_env_vars_to_component(execute_job, data_s3_access_secret)
+            ComponentUtils.add_secret_env_vars_to_component(execute_job, LAKEHOUSE_TOKEN)
         execute_job.after(ray_cluster)
-
 
 if __name__ == "__main__":
     # Compiling the pipeline
