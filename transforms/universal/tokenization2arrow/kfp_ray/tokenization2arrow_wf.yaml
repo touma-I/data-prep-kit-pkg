@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: tokenization2arrow-ray-pipeline-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.22, pipelines.kubeflow.org/pipeline_compilation_time: '2025-04-18T04:54:51.435840',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.22, pipelines.kubeflow.org/pipeline_compilation_time: '2025-04-18T15:18:37.847706',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "Pipeline for tokenization2arrow",
       "inputs": [{"default": "tkn-kfp-ray", "name": "ray_name", "optional": true,
       "type": "String"}, {"default": "", "name": "ray_run_id_KFPv2", "optional": true,
