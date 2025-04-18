@@ -355,9 +355,9 @@ class DataAccessLakeHouse(DataAccess):
             "path": self.S3.input_folder,
             "extra": {"partition_filter": json.dumps([ob.__dict__ for ob in self.partition_filter])},
         }
-        metadata={}
         if self.output_type == 'file':
             metadata["target"] = {
+                "name": self.lh.output_table_name,
                 "type": "file",
                 "path": self.lh.output_path,
             }
@@ -413,7 +413,8 @@ class DataAccessLakeHouse(DataAccess):
                 )
             ],
             targets=[
-                DataSource (
+                Datasource(
+                    name = self.lh.output_table_name,
                     type = "file",
                     path=[metadata["target"]["path"]]
                  )

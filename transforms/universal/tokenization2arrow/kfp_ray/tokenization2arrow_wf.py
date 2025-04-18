@@ -33,7 +33,7 @@ DATA_CONFIG = {
     'output_table': 'processed.ibmdatapile.academic.ieee.lh_tk2arrow_kfptest', 
     "output_path": 'lh-test/tables/processed/ibmdatapile/academic/ieee/lh_tk2arrow_kfptest',
     "da_class": 'data_processing.data_access.data_access_lh.DataAccessLakeHouse',
-    "output_type": ["file"]
+    "output_type": "file"
 }
 #    "da_class": 'dpk_data_access_lh.DataAccessLakeHouse',
 
@@ -136,7 +136,7 @@ def tokenization2arrow(
     ray_name: str = "tkn-kfp-ray",  # name of Ray cluster
     ray_run_id_KFPv2: str = "",   # Ray cluster unique ID used only in KFP v2
     # Add image_pull_secret and image_pull_policy to ray workers if needed
-    ray_head_options: dict = {"cpu": 2,
+    ray_head_options: dict = {"cpu": 1,
                                "memory": 16, 
                                "image": task_image,
     },
@@ -145,7 +145,7 @@ def tokenization2arrow(
         "max_replicas": 2,
         "min_replicas": 2,
         "cpu": 2,
-        "memory": 8,
+        "memory": 16,
         "image": task_image,
     },
     server_url: str = "http://kuberay-apiserver-service.kuberay.svc.cluster.local:8888",
@@ -153,7 +153,7 @@ def tokenization2arrow(
     data_s3_config: str = str(DATA_CONFIG),
     data_s3_access_secret: str = S3_SECRET,
     other_secrets: dict = LAKEHOUSE_TOKEN,
-    data_max_files: int = 2,
+    data_max_files: int = 1,
     data_num_samples: int = -1,
     data_checkpointing: bool = False,
     data_data_sets: str = "",

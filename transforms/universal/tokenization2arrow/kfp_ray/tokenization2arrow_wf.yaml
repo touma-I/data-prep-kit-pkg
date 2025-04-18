@@ -2,14 +2,14 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: tokenization2arrow-ray-pipeline-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.22, pipelines.kubeflow.org/pipeline_compilation_time: '2025-04-17T20:45:06.858062',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.22, pipelines.kubeflow.org/pipeline_compilation_time: '2025-04-18T04:54:51.435840',
     pipelines.kubeflow.org/pipeline_spec: '{"description": "Pipeline for tokenization2arrow",
       "inputs": [{"default": "tkn-kfp-ray", "name": "ray_name", "optional": true,
       "type": "String"}, {"default": "", "name": "ray_run_id_KFPv2", "optional": true,
-      "type": "String"}, {"default": "{\"cpu\": 2, \"image\": \"quay.io/dataprep1/data-prep-kit/tokenization2arrow-ray:latest\",
+      "type": "String"}, {"default": "{\"cpu\": 1, \"image\": \"quay.io/dataprep1/data-prep-kit/tokenization2arrow-ray:latest\",
       \"memory\": 16}", "name": "ray_head_options", "optional": true, "type": "JsonObject"},
       {"default": "{\"cpu\": 2, \"image\": \"quay.io/dataprep1/data-prep-kit/tokenization2arrow-ray:latest\",
-      \"max_replicas\": 2, \"memory\": 8, \"min_replicas\": 2, \"replicas\": 2}",
+      \"max_replicas\": 2, \"memory\": 16, \"min_replicas\": 2, \"replicas\": 2}",
       "name": "ray_worker_options", "optional": true, "type": "JsonObject"}, {"default":
       "http://kuberay-apiserver-service.kuberay.svc.cluster.local:8888", "name": "server_url",
       "optional": true, "type": "String"}, {"default": "{''lh_environment'': ''STAGING'',
@@ -17,11 +17,11 @@ metadata:
       ''main'', ''output_table'': ''processed.ibmdatapile.academic.ieee.lh_tk2arrow_kfptest'',
       ''output_path'': ''lh-test/tables/processed/ibmdatapile/academic/ieee/lh_tk2arrow_kfptest'',
       ''da_class'': ''data_processing.data_access.data_access_lh.DataAccessLakeHouse'',
-      ''output_type'': [''file'']}", "name": "data_s3_config", "optional": true, "type":
+      ''output_type'': ''file''}", "name": "data_s3_config", "optional": true, "type":
       "String"}, {"default": "cos-lh-access", "name": "data_s3_access_secret", "optional":
       true, "type": "String"}, {"default": "{\"lh-token-touma\": {\"DPL_LAKEHOUSE_TOKEN\":
       \"lh-token\"}}", "name": "other_secrets", "optional": true, "type": "JsonObject"},
-      {"default": "2", "name": "data_max_files", "optional": true, "type": "Integer"},
+      {"default": "1", "name": "data_max_files", "optional": true, "type": "Integer"},
       {"default": "-1", "name": "data_num_samples", "optional": true, "type": "Integer"},
       {"default": "False", "name": "data_checkpointing", "optional": true, "type":
       "Boolean"}, {"default": "", "name": "data_data_sets", "optional": true, "type":
@@ -558,20 +558,20 @@ spec:
     parameters:
     - {name: ray_name, value: tkn-kfp-ray}
     - {name: ray_run_id_KFPv2, value: ''}
-    - {name: ray_head_options, value: '{"cpu": 2, "image": "quay.io/dataprep1/data-prep-kit/tokenization2arrow-ray:latest",
+    - {name: ray_head_options, value: '{"cpu": 1, "image": "quay.io/dataprep1/data-prep-kit/tokenization2arrow-ray:latest",
         "memory": 16}'}
     - {name: ray_worker_options, value: '{"cpu": 2, "image": "quay.io/dataprep1/data-prep-kit/tokenization2arrow-ray:latest",
-        "max_replicas": 2, "memory": 8, "min_replicas": 2, "replicas": 2}'}
+        "max_replicas": 2, "memory": 16, "min_replicas": 2, "replicas": 2}'}
     - {name: server_url, value: 'http://kuberay-apiserver-service.kuberay.svc.cluster.local:8888'}
     - {name: data_s3_config, value: '{''lh_environment'': ''STAGING'', ''input_table'':
         ''ibmdatapile.academic.ieee'', ''input_dataset'': '''', ''input_version'':
         ''main'', ''output_table'': ''processed.ibmdatapile.academic.ieee.lh_tk2arrow_kfptest'',
         ''output_path'': ''lh-test/tables/processed/ibmdatapile/academic/ieee/lh_tk2arrow_kfptest'',
         ''da_class'': ''data_processing.data_access.data_access_lh.DataAccessLakeHouse'',
-        ''output_type'': [''file'']}'}
+        ''output_type'': ''file''}'}
     - {name: data_s3_access_secret, value: cos-lh-access}
     - {name: other_secrets, value: '{"lh-token-touma": {"DPL_LAKEHOUSE_TOKEN": "lh-token"}}'}
-    - {name: data_max_files, value: '2'}
+    - {name: data_max_files, value: '1'}
     - {name: data_num_samples, value: '-1'}
     - name: data_checkpointing
       value: "False"
