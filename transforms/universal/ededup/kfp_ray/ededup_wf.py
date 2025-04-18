@@ -14,7 +14,6 @@ import os
 import kfp.compiler as compiler
 import kfp.components as comp
 import kfp.dsl as dsl
-from src.ededup_compute_execution_params import ededup_compute_execution_params
 from workflow_support.compile_utils import (
     DEFAULT_KFP_COMPONENT_SPEC_PATH,
     ONE_HOUR_SEC,
@@ -37,6 +36,55 @@ base_kfp_image = "quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest"
 # path to kfp component specifications files
 component_spec_path = os.getenv("KFP_COMPONENT_SPEC_PATH", DEFAULT_KFP_COMPONENT_SPEC_PATH)
 
+def compute_execution_params(
+    worker_options: dict,  # ray worker configuration
+    actor_options: dict,  # actor's resource requirements
+    data_s3_config: str,  # s3 configuration
+    data_max_files: int,  # max files to process
+    data_num_samples: int,  # num samples to process
+    runtime_pipeline_id: str,  # pipeline id
+    runtime_job_id: str,  # job id
+    runtime_code_location: dict,  # code location
+    ededup_doc_column: str,  # key for accessing data
+    ededup_hash_cpu: float,  # number of CPUs per hash
+    ededup_use_snapshot: bool,  # flag to start from snapshot
+    ededup_snapshot_directory: str,  # snapshot directory
+    ededup_num_hashes: int,  # number of samples for parameters computation
+) -> dict:
+    """
+    Compute exact dedup execution parameters
+    :param worker_options: cluster parameters
+    :param actor_options: actor request requirements
+    :param ededup_n_samples: number of samples to use
+    :param data_s3_config - s3 config
+    :param data_max_files - max files to process
+    :param data_num_samples - num samples to process
+    :param runtime_pipeline_id - pipeline id
+    :param runtime_job_id - job id, or just a unique string
+    :param runtime_code_location - code location
+    :param ededup_doc_column - key for accessing data
+    :param ededup_hash_cpu - number of CPUs per hash
+    :param ededup_use_snapshot - flag to start from existing snapshot
+    :param ededup_snapshot_directory: str - snapshot directory
+    :param ededup_n_samples - umber of samples for parameters computation
+    :return: a dictionary with a Ray Job execution parameters
+    """
+    from runtime_utils import KFPUtils
+    return {
+        "data_s3_config": data_s3_config,
+        "data_max_files": data_max_files,
+        "data_num_samples": data_num_samples,
+        "runtime_num_workers": KFPUtils.default_compute_execution_params(str(worker_options), str(actor_options)),
+        "runtime_worker_options": str(actor_options),
+        "runtime_pipeline_id": runtime_pipeline_id,
+        "runtime_job_id": runtime_job_id,
+        "runtime_code_location": str(runtime_code_location),
+        "ededup_doc_column": ededup_doc_column,
+        "ededup_hash_cpu": ededup_hash_cpu,
+        "ededup_use_snapshot": ededup_use_snapshot,
+        "ededup_snapshot_directory": ededup_snapshot_directory,
+        "ededup_num_hashes": ededup_num_hashes,
+    }
 
 # KFPv1 and KFP2 uses different methods to create a component from a function. KFPv1 uses the
 # `create_component_from_func` function, but it is deprecated by KFPv2 and so has a different import path.
@@ -50,12 +98,12 @@ if os.getenv("KFPv2", "0") == "1":
     import uuid
 
     compute_exec_params_op = dsl.component_decorator.component(
-        func=ededup_compute_execution_params, base_image=base_kfp_image
+        func=compute_execution_params, base_image=base_kfp_image
     )
     
 else:
     compute_exec_params_op = comp.create_component_from_func(
-        func=ededup_compute_execution_params, base_image=base_kfp_image
+        func=compute_execution_params, base_image=base_kfp_image
     )
     run_id = dsl.RUN_ID_PLACEHOLDER
 
@@ -105,7 +153,7 @@ def ededup(
     ededup_use_snapshot: bool = False,
     ededup_snapshot_directory: str = "",
     # data sampling
-    ededup_n_samples: int = 10,
+    ededup_num_hashes: int = 1,
     # additional parameters
     additional_params: str = '{"wait_interval": 2, "wait_cluster_ready_tmout": 400, "wait_cluster_up_tmout": 300, "wait_job_ready_tmout": 400, "wait_print_tmout": 30, "http_retries": 5, "delete_cluster_delay_minutes": 0}',
 ):
@@ -181,7 +229,7 @@ def ededup(
             ededup_hash_cpu=ededup_hash_cpu,
             ededup_use_snapshot=ededup_use_snapshot,
             ededup_snapshot_directory=ededup_snapshot_directory,
-            ededup_n_samples=ededup_n_samples,
+            ededup_num_hashes=ededup_num_hashes,
         )
         ComponentUtils.add_settings_to_component(compute_exec_params, ONE_HOUR_SEC * 2)
         if os.getenv("KFPv2", "0") == "1":
