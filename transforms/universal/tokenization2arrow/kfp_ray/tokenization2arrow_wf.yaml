@@ -1,0 +1,594 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: tokenization2arrow-ray-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.22, pipelines.kubeflow.org/pipeline_compilation_time: '2025-04-17T20:45:06.858062',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Pipeline for tokenization2arrow",
+      "inputs": [{"default": "tkn-kfp-ray", "name": "ray_name", "optional": true,
+      "type": "String"}, {"default": "", "name": "ray_run_id_KFPv2", "optional": true,
+      "type": "String"}, {"default": "{\"cpu\": 2, \"image\": \"quay.io/dataprep1/data-prep-kit/tokenization2arrow-ray:latest\",
+      \"memory\": 16}", "name": "ray_head_options", "optional": true, "type": "JsonObject"},
+      {"default": "{\"cpu\": 2, \"image\": \"quay.io/dataprep1/data-prep-kit/tokenization2arrow-ray:latest\",
+      \"max_replicas\": 2, \"memory\": 8, \"min_replicas\": 2, \"replicas\": 2}",
+      "name": "ray_worker_options", "optional": true, "type": "JsonObject"}, {"default":
+      "http://kuberay-apiserver-service.kuberay.svc.cluster.local:8888", "name": "server_url",
+      "optional": true, "type": "String"}, {"default": "{''lh_environment'': ''STAGING'',
+      ''input_table'': ''ibmdatapile.academic.ieee'', ''input_dataset'': '''', ''input_version'':
+      ''main'', ''output_table'': ''processed.ibmdatapile.academic.ieee.lh_tk2arrow_kfptest'',
+      ''output_path'': ''lh-test/tables/processed/ibmdatapile/academic/ieee/lh_tk2arrow_kfptest'',
+      ''da_class'': ''data_processing.data_access.data_access_lh.DataAccessLakeHouse'',
+      ''output_type'': [''file'']}", "name": "data_s3_config", "optional": true, "type":
+      "String"}, {"default": "cos-lh-access", "name": "data_s3_access_secret", "optional":
+      true, "type": "String"}, {"default": "{\"lh-token-touma\": {\"DPL_LAKEHOUSE_TOKEN\":
+      \"lh-token\"}}", "name": "other_secrets", "optional": true, "type": "JsonObject"},
+      {"default": "2", "name": "data_max_files", "optional": true, "type": "Integer"},
+      {"default": "-1", "name": "data_num_samples", "optional": true, "type": "Integer"},
+      {"default": "False", "name": "data_checkpointing", "optional": true, "type":
+      "Boolean"}, {"default": "", "name": "data_data_sets", "optional": true, "type":
+      "String"}, {"default": "[''.parquet'']", "name": "data_files_to_use", "optional":
+      true, "type": "String"}, {"default": "{\"num_cpus\": 0.8}", "name": "runtime_actor_options",
+      "optional": true, "type": "JsonObject"}, {"default": "pipeline_id", "name":
+      "runtime_pipeline_id", "optional": true, "type": "String"}, {"default": "{\"commit_hash\":
+      \"12345\", \"github\": \"github\", \"path\": \"path\"}", "name": "runtime_code_location",
+      "optional": true, "type": "JsonObject"}, {"default": "hf-internal-testing/llama-tokenizer",
+      "name": "tkn_tokenizer", "optional": true, "type": "String"}, {"default": "document_id",
+      "name": "tkn_doc_id_column", "optional": true, "type": "String"}, {"default":
+      "contents", "name": "tkn_doc_content_column", "optional": true, "type": "String"},
+      {"default": "en", "name": "tkn_text_lang", "optional": true, "type": "String"},
+      {"default": "cache_dir=/tmp/hf", "name": "tkn_tokenizer_args", "optional": true,
+      "type": "String"}, {"default": "0", "name": "tkn_chunk_size", "optional": true,
+      "type": "Integer"}, {"default": "{\"wait_interval\": 2, \"wait_cluster_ready_tmout\":
+      400, \"wait_cluster_up_tmout\": 300, \"wait_job_ready_tmout\": 400, \"wait_print_tmout\":
+      30, \"http_retries\": 5, \"delete_cluster_delay_minutes\": 0}", "name": "additional_params",
+      "optional": true, "type": "String"}], "name": "tokenization2arrow-ray-pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.22}
+spec:
+  entrypoint: tokenization2arrow-ray-pipeline
+  templates:
+  - name: compute-exec-params-func
+    container:
+      args: [--worker-options, '{{inputs.parameters.ray_worker_options}}', --actor-options,
+        '{{inputs.parameters.runtime_actor_options}}', --data-s3-config, '{{inputs.parameters.data_s3_config}}',
+        --data-max-files, '{{inputs.parameters.data_max_files}}', --data-num-samples,
+        '{{inputs.parameters.data_num_samples}}', --data-checkpointing, '{{inputs.parameters.data_checkpointing}}',
+        --data-data-sets, '{{inputs.parameters.data_data_sets}}', --data-files-to-use,
+        '{{inputs.parameters.data_files_to_use}}', --runtime-pipeline-id, '{{inputs.parameters.runtime_pipeline_id}}',
+        --runtime-job-id, '{{workflow.uid}}', --runtime-code-location, '{{inputs.parameters.runtime_code_location}}',
+        --tkn-tokenizer, '{{inputs.parameters.tkn_tokenizer}}', --tkn-tokenizer-args,
+        '{{inputs.parameters.tkn_tokenizer_args}}', --tkn-doc-id-column, '{{inputs.parameters.tkn_doc_id_column}}',
+        --tkn-doc-content-column, '{{inputs.parameters.tkn_doc_content_column}}',
+        --tkn-text-lang, '{{inputs.parameters.tkn_text_lang}}', --tkn-chunk-size,
+        '{{inputs.parameters.tkn_chunk_size}}', '----output-paths', /tmp/outputs/Output/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def compute_exec_params_func(
+            worker_options,
+            actor_options,
+            data_s3_config,
+            data_max_files,
+            data_num_samples,
+            data_checkpointing,
+            data_data_sets,
+            data_files_to_use,
+            runtime_pipeline_id,
+            runtime_job_id,
+            runtime_code_location,
+            tkn_tokenizer,
+            tkn_tokenizer_args,
+            tkn_doc_id_column,
+            tkn_doc_content_column,
+            tkn_text_lang,
+            tkn_chunk_size,
+        ):
+            from runtime_utils import KFPUtils
+
+            return {
+                "data_s3_config": data_s3_config,
+                "data_max_files": data_max_files,
+                "data_num_samples": data_num_samples,
+                "data_checkpointing": data_checkpointing,
+                "data_data_sets": data_data_sets.strip(),
+                "data_files_to_use": data_files_to_use,
+                "runtime_num_workers": KFPUtils.default_compute_execution_params(str(worker_options), str(actor_options)),
+                "runtime_worker_options": str(actor_options),
+                "runtime_pipeline_id": runtime_pipeline_id,
+                "runtime_job_id": runtime_job_id,
+                "runtime_code_location": str(runtime_code_location),
+                "tkn_tokenizer": tkn_tokenizer,
+                "tkn_tokenizer_args": tkn_tokenizer_args,
+                "tkn_doc_id_column": tkn_doc_id_column,
+                "tkn_doc_content_column": tkn_doc_content_column,
+                "tkn_text_lang": tkn_text_lang,
+                "tkn_chunk_size": tkn_chunk_size,
+            }
+
+        def _deserialize_bool(s) -> bool:
+            from distutils.util import strtobool
+            return strtobool(s) == 1
+
+        def _serialize_json(obj) -> str:
+            if isinstance(obj, str):
+                return obj
+            import json
+
+            def default_serializer(obj):
+                if hasattr(obj, 'to_struct'):
+                    return obj.to_struct()
+                else:
+                    raise TypeError(
+                        "Object of type '%s' is not JSON serializable and does not have .to_struct() method."
+                        % obj.__class__.__name__)
+
+            return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+        import json
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Compute exec params func', description='')
+        _parser.add_argument("--worker-options", dest="worker_options", type=json.loads, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--actor-options", dest="actor_options", type=json.loads, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--data-s3-config", dest="data_s3_config", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--data-max-files", dest="data_max_files", type=int, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--data-num-samples", dest="data_num_samples", type=int, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--data-checkpointing", dest="data_checkpointing", type=_deserialize_bool, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--data-data-sets", dest="data_data_sets", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--data-files-to-use", dest="data_files_to_use", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--runtime-pipeline-id", dest="runtime_pipeline_id", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--runtime-job-id", dest="runtime_job_id", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--runtime-code-location", dest="runtime_code_location", type=json.loads, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--tkn-tokenizer", dest="tkn_tokenizer", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--tkn-tokenizer-args", dest="tkn_tokenizer_args", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--tkn-doc-id-column", dest="tkn_doc_id_column", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--tkn-doc-content-column", dest="tkn_doc_content_column", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--tkn-text-lang", dest="tkn_text_lang", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--tkn-chunk-size", dest="tkn_chunk_size", type=int, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = compute_exec_params_func(**_parsed_args)
+
+        _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_json,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest
+      imagePullPolicy: IfNotPresent
+    inputs:
+      parameters:
+      - {name: data_checkpointing}
+      - {name: data_data_sets}
+      - {name: data_files_to_use}
+      - {name: data_max_files}
+      - {name: data_num_samples}
+      - {name: data_s3_config}
+      - {name: ray_worker_options}
+      - {name: runtime_actor_options}
+      - {name: runtime_code_location}
+      - {name: runtime_pipeline_id}
+      - {name: tkn_chunk_size}
+      - {name: tkn_doc_content_column}
+      - {name: tkn_doc_id_column}
+      - {name: tkn_text_lang}
+      - {name: tkn_tokenizer}
+      - {name: tkn_tokenizer_args}
+    outputs:
+      parameters:
+      - name: compute-exec-params-func-Output
+        valueFrom: {path: /tmp/outputs/Output/data}
+      artifacts:
+      - {name: compute-exec-params-func-Output, path: /tmp/outputs/Output/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.22
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--worker-options", {"inputValue": "worker_options"}, "--actor-options",
+          {"inputValue": "actor_options"}, "--data-s3-config", {"inputValue": "data_s3_config"},
+          "--data-max-files", {"inputValue": "data_max_files"}, "--data-num-samples",
+          {"inputValue": "data_num_samples"}, "--data-checkpointing", {"inputValue":
+          "data_checkpointing"}, "--data-data-sets", {"inputValue": "data_data_sets"},
+          "--data-files-to-use", {"inputValue": "data_files_to_use"}, "--runtime-pipeline-id",
+          {"inputValue": "runtime_pipeline_id"}, "--runtime-job-id", {"inputValue":
+          "runtime_job_id"}, "--runtime-code-location", {"inputValue": "runtime_code_location"},
+          "--tkn-tokenizer", {"inputValue": "tkn_tokenizer"}, "--tkn-tokenizer-args",
+          {"inputValue": "tkn_tokenizer_args"}, "--tkn-doc-id-column", {"inputValue":
+          "tkn_doc_id_column"}, "--tkn-doc-content-column", {"inputValue": "tkn_doc_content_column"},
+          "--tkn-text-lang", {"inputValue": "tkn_text_lang"}, "--tkn-chunk-size",
+          {"inputValue": "tkn_chunk_size"}, "----output-paths", {"outputPath": "Output"}],
+          "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" >
+          \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def compute_exec_params_func(\n    worker_options,\n    actor_options,\n    data_s3_config,\n    data_max_files,\n    data_num_samples,\n    data_checkpointing,\n    data_data_sets,\n    data_files_to_use,\n    runtime_pipeline_id,\n    runtime_job_id,\n    runtime_code_location,\n    tkn_tokenizer,\n    tkn_tokenizer_args,\n    tkn_doc_id_column,\n    tkn_doc_content_column,\n    tkn_text_lang,\n    tkn_chunk_size,\n):\n    from
+          runtime_utils import KFPUtils\n\n    return {\n        \"data_s3_config\":
+          data_s3_config,\n        \"data_max_files\": data_max_files,\n        \"data_num_samples\":
+          data_num_samples,\n        \"data_checkpointing\": data_checkpointing,\n        \"data_data_sets\":
+          data_data_sets.strip(),\n        \"data_files_to_use\": data_files_to_use,\n        \"runtime_num_workers\":
+          KFPUtils.default_compute_execution_params(str(worker_options), str(actor_options)),\n        \"runtime_worker_options\":
+          str(actor_options),\n        \"runtime_pipeline_id\": runtime_pipeline_id,\n        \"runtime_job_id\":
+          runtime_job_id,\n        \"runtime_code_location\": str(runtime_code_location),\n        \"tkn_tokenizer\":
+          tkn_tokenizer,\n        \"tkn_tokenizer_args\": tkn_tokenizer_args,\n        \"tkn_doc_id_column\":
+          tkn_doc_id_column,\n        \"tkn_doc_content_column\": tkn_doc_content_column,\n        \"tkn_text_lang\":
+          tkn_text_lang,\n        \"tkn_chunk_size\": tkn_chunk_size,\n    }\n\ndef
+          _deserialize_bool(s) -> bool:\n    from distutils.util import strtobool\n    return
+          strtobool(s) == 1\n\ndef _serialize_json(obj) -> str:\n    if isinstance(obj,
+          str):\n        return obj\n    import json\n\n    def default_serializer(obj):\n        if
+          hasattr(obj, ''to_struct''):\n            return obj.to_struct()\n        else:\n            raise
+          TypeError(\n                \"Object of type ''%s'' is not JSON serializable
+          and does not have .to_struct() method.\"\n                % obj.__class__.__name__)\n\n    return
+          json.dumps(obj, default=default_serializer, sort_keys=True)\n\nimport json\nimport
+          argparse\n_parser = argparse.ArgumentParser(prog=''Compute exec params func'',
+          description='''')\n_parser.add_argument(\"--worker-options\", dest=\"worker_options\",
+          type=json.loads, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--actor-options\",
+          dest=\"actor_options\", type=json.loads, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--data-s3-config\",
+          dest=\"data_s3_config\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--data-max-files\",
+          dest=\"data_max_files\", type=int, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--data-num-samples\",
+          dest=\"data_num_samples\", type=int, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--data-checkpointing\",
+          dest=\"data_checkpointing\", type=_deserialize_bool, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--data-data-sets\",
+          dest=\"data_data_sets\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--data-files-to-use\",
+          dest=\"data_files_to_use\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--runtime-pipeline-id\",
+          dest=\"runtime_pipeline_id\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--runtime-job-id\",
+          dest=\"runtime_job_id\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--runtime-code-location\",
+          dest=\"runtime_code_location\", type=json.loads, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--tkn-tokenizer\",
+          dest=\"tkn_tokenizer\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--tkn-tokenizer-args\",
+          dest=\"tkn_tokenizer_args\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--tkn-doc-id-column\",
+          dest=\"tkn_doc_id_column\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--tkn-doc-content-column\",
+          dest=\"tkn_doc_content_column\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--tkn-text-lang\",
+          dest=\"tkn_text_lang\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--tkn-chunk-size\",
+          dest=\"tkn_chunk_size\", type=int, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = compute_exec_params_func(**_parsed_args)\n\n_outputs
+          = [_outputs]\n\n_output_serializers = [\n    _serialize_json,\n\n]\n\nimport
+          os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest"}},
+          "inputs": [{"name": "worker_options", "type": "JsonObject"}, {"name": "actor_options",
+          "type": "JsonObject"}, {"name": "data_s3_config", "type": "String"}, {"name":
+          "data_max_files", "type": "Integer"}, {"name": "data_num_samples", "type":
+          "Integer"}, {"name": "data_checkpointing", "type": "Boolean"}, {"name":
+          "data_data_sets", "type": "String"}, {"name": "data_files_to_use", "type":
+          "String"}, {"name": "runtime_pipeline_id", "type": "String"}, {"name": "runtime_job_id",
+          "type": "String"}, {"name": "runtime_code_location", "type": "JsonObject"},
+          {"name": "tkn_tokenizer", "type": "String"}, {"name": "tkn_tokenizer_args",
+          "type": "String"}, {"name": "tkn_doc_id_column", "type": "String"}, {"name":
+          "tkn_doc_content_column", "type": "String"}, {"name": "tkn_text_lang", "type":
+          "String"}, {"name": "tkn_chunk_size", "type": "Integer"}], "name": "Compute
+          exec params func", "outputs": [{"name": "Output", "type": "JsonObject"}]}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"actor_options":
+          "{{inputs.parameters.runtime_actor_options}}", "data_checkpointing": "{{inputs.parameters.data_checkpointing}}",
+          "data_data_sets": "{{inputs.parameters.data_data_sets}}", "data_files_to_use":
+          "{{inputs.parameters.data_files_to_use}}", "data_max_files": "{{inputs.parameters.data_max_files}}",
+          "data_num_samples": "{{inputs.parameters.data_num_samples}}", "data_s3_config":
+          "{{inputs.parameters.data_s3_config}}", "runtime_code_location": "{{inputs.parameters.runtime_code_location}}",
+          "runtime_job_id": "{{workflow.uid}}", "runtime_pipeline_id": "{{inputs.parameters.runtime_pipeline_id}}",
+          "tkn_chunk_size": "{{inputs.parameters.tkn_chunk_size}}", "tkn_doc_content_column":
+          "{{inputs.parameters.tkn_doc_content_column}}", "tkn_doc_id_column": "{{inputs.parameters.tkn_doc_id_column}}",
+          "tkn_text_lang": "{{inputs.parameters.tkn_text_lang}}", "tkn_tokenizer":
+          "{{inputs.parameters.tkn_tokenizer}}", "tkn_tokenizer_args": "{{inputs.parameters.tkn_tokenizer_args}}",
+          "worker_options": "{{inputs.parameters.ray_worker_options}}"}', pipelines.kubeflow.org/max_cache_staleness: P0D}
+    activeDeadlineSeconds: 7200
+  - name: execute-ray-job
+    container:
+      args: []
+      command: [python, -u, /pipelines/component/src/execute_ray_job.py, --ray_name,
+        '{{inputs.parameters.ray_name}}', --run_id, '{{workflow.uid}}', --exec_params,
+        '{{inputs.parameters.compute-exec-params-func-Output}}', --additional_params,
+        '{{inputs.parameters.additional_params}}', --exec_script_name, -m dpk_tokenization2arrow.ray.runtime,
+        --server_url, '{{inputs.parameters.server_url}}']
+      env:
+      - name: S3_ACCESS_KEY
+        valueFrom:
+          secretKeyRef: {key: s3-key, name: '{{inputs.parameters.data_s3_access_secret}}'}
+      - name: S3_SECRET_KEY
+        valueFrom:
+          secretKeyRef: {key: s3-secret, name: '{{inputs.parameters.data_s3_access_secret}}'}
+      - name: S3_ENDPOINT
+        valueFrom:
+          secretKeyRef: {key: s3-endpoint, name: '{{inputs.parameters.data_s3_access_secret}}'}
+      - name: DPL_LAKEHOUSE_TOKEN
+        valueFrom:
+          secretKeyRef: {key: lh-token, name: lh-token-touma}
+      image: quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest
+      imagePullPolicy: IfNotPresent
+    inputs:
+      parameters:
+      - {name: additional_params}
+      - {name: compute-exec-params-func-Output}
+      - {name: data_s3_access_secret}
+      - {name: ray_name}
+      - {name: server_url}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.22
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Executes
+          Ray Job", "implementation": {"container": {"command": ["python", "-u", "/pipelines/component/src/execute_ray_job.py",
+          "--ray_name", {"inputValue": "ray_name"}, "--run_id", {"inputValue": "run_id"},
+          "--exec_params", {"inputValue": "exec_params"}, "--additional_params", {"inputValue":
+          "additional_params"}, "--exec_script_name", {"inputValue": "exec_script_name"},
+          "--server_url", {"inputValue": "server_url"}], "image": "quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest"}},
+          "inputs": [{"description": "Ray name", "name": "ray_name", "type": "String"},
+          {"description": "The KFP Run ID", "name": "run_id", "type": "String"}, {"description":
+          "additional parameters", "name": "additional_params", "type": "String"},
+          {"description": "job parameters", "name": "exec_params", "type": "JsonObject"},
+          {"description": "transform script name", "name": "exec_script_name", "type":
+          "String"}, {"default": "", "description": "url of api server", "name": "server_url",
+          "type": "String"}], "name": "Execute Ray Job"}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "badd03b150e7519f72b80e6c14c0e3e752a914f245766044dc1f4bb4097344c6", "url":
+          "../../../../kfp/kfp_ray_components/executeRayJobComponent.yaml"}', pipelines.kubeflow.org/arguments.parameters: '{"additional_params":
+          "{{inputs.parameters.additional_params}}", "exec_params": "{{inputs.parameters.compute-exec-params-func-Output}}",
+          "exec_script_name": "-m dpk_tokenization2arrow.ray.runtime", "ray_name":
+          "{{inputs.parameters.ray_name}}", "run_id": "{{workflow.uid}}", "server_url":
+          "{{inputs.parameters.server_url}}"}', pipelines.kubeflow.org/max_cache_staleness: P0D}
+    activeDeadlineSeconds: 604800
+  - name: exit-handler-1
+    inputs:
+      parameters:
+      - {name: additional_params}
+      - {name: data_checkpointing}
+      - {name: data_data_sets}
+      - {name: data_files_to_use}
+      - {name: data_max_files}
+      - {name: data_num_samples}
+      - {name: data_s3_access_secret}
+      - {name: data_s3_config}
+      - {name: other_secrets}
+      - {name: ray_head_options}
+      - {name: ray_name}
+      - {name: ray_worker_options}
+      - {name: runtime_actor_options}
+      - {name: runtime_code_location}
+      - {name: runtime_pipeline_id}
+      - {name: server_url}
+      - {name: tkn_chunk_size}
+      - {name: tkn_doc_content_column}
+      - {name: tkn_doc_id_column}
+      - {name: tkn_text_lang}
+      - {name: tkn_tokenizer}
+      - {name: tkn_tokenizer_args}
+    dag:
+      tasks:
+      - name: compute-exec-params-func
+        template: compute-exec-params-func
+        arguments:
+          parameters:
+          - {name: data_checkpointing, value: '{{inputs.parameters.data_checkpointing}}'}
+          - {name: data_data_sets, value: '{{inputs.parameters.data_data_sets}}'}
+          - {name: data_files_to_use, value: '{{inputs.parameters.data_files_to_use}}'}
+          - {name: data_max_files, value: '{{inputs.parameters.data_max_files}}'}
+          - {name: data_num_samples, value: '{{inputs.parameters.data_num_samples}}'}
+          - {name: data_s3_config, value: '{{inputs.parameters.data_s3_config}}'}
+          - {name: ray_worker_options, value: '{{inputs.parameters.ray_worker_options}}'}
+          - {name: runtime_actor_options, value: '{{inputs.parameters.runtime_actor_options}}'}
+          - {name: runtime_code_location, value: '{{inputs.parameters.runtime_code_location}}'}
+          - {name: runtime_pipeline_id, value: '{{inputs.parameters.runtime_pipeline_id}}'}
+          - {name: tkn_chunk_size, value: '{{inputs.parameters.tkn_chunk_size}}'}
+          - {name: tkn_doc_content_column, value: '{{inputs.parameters.tkn_doc_content_column}}'}
+          - {name: tkn_doc_id_column, value: '{{inputs.parameters.tkn_doc_id_column}}'}
+          - {name: tkn_text_lang, value: '{{inputs.parameters.tkn_text_lang}}'}
+          - {name: tkn_tokenizer, value: '{{inputs.parameters.tkn_tokenizer}}'}
+          - {name: tkn_tokenizer_args, value: '{{inputs.parameters.tkn_tokenizer_args}}'}
+      - name: execute-ray-job
+        template: execute-ray-job
+        dependencies: [compute-exec-params-func, start-ray-cluster]
+        arguments:
+          parameters:
+          - {name: additional_params, value: '{{inputs.parameters.additional_params}}'}
+          - {name: compute-exec-params-func-Output, value: '{{tasks.compute-exec-params-func.outputs.parameters.compute-exec-params-func-Output}}'}
+          - {name: data_s3_access_secret, value: '{{inputs.parameters.data_s3_access_secret}}'}
+          - {name: ray_name, value: '{{inputs.parameters.ray_name}}'}
+          - {name: server_url, value: '{{inputs.parameters.server_url}}'}
+      - name: start-ray-cluster
+        template: start-ray-cluster
+        dependencies: [compute-exec-params-func]
+        arguments:
+          parameters:
+          - {name: additional_params, value: '{{inputs.parameters.additional_params}}'}
+          - {name: data_s3_access_secret, value: '{{inputs.parameters.data_s3_access_secret}}'}
+          - {name: other_secrets, value: '{{inputs.parameters.other_secrets}}'}
+          - {name: ray_head_options, value: '{{inputs.parameters.ray_head_options}}'}
+          - {name: ray_name, value: '{{inputs.parameters.ray_name}}'}
+          - {name: ray_worker_options, value: '{{inputs.parameters.ray_worker_options}}'}
+          - {name: server_url, value: '{{inputs.parameters.server_url}}'}
+  - name: start-ray-cluster
+    container:
+      args: []
+      command: [python, -u, /pipelines/component/src/create_ray_cluster.py, --ray_name,
+        '{{inputs.parameters.ray_name}}', --run_id, '{{workflow.uid}}', --ray_head_options,
+        '{{inputs.parameters.ray_head_options}}', --ray_worker_options, '{{inputs.parameters.ray_worker_options}}',
+        --other_secrets, '{{inputs.parameters.other_secrets}}', --server_url, '{{inputs.parameters.server_url}}',
+        --additional_params, '{{inputs.parameters.additional_params}}']
+      env:
+      - name: S3_ACCESS_KEY
+        valueFrom:
+          secretKeyRef: {key: s3-key, name: '{{inputs.parameters.data_s3_access_secret}}'}
+      - name: S3_SECRET_KEY
+        valueFrom:
+          secretKeyRef: {key: s3-secret, name: '{{inputs.parameters.data_s3_access_secret}}'}
+      - name: S3_ENDPOINT
+        valueFrom:
+          secretKeyRef: {key: s3-endpoint, name: '{{inputs.parameters.data_s3_access_secret}}'}
+      image: quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest
+      imagePullPolicy: IfNotPresent
+    inputs:
+      parameters:
+      - {name: additional_params}
+      - {name: data_s3_access_secret}
+      - {name: other_secrets}
+      - {name: ray_head_options}
+      - {name: ray_name}
+      - {name: ray_worker_options}
+      - {name: server_url}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.22
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Creates
+          Ray cluster", "implementation": {"container": {"command": ["python", "-u",
+          "/pipelines/component/src/create_ray_cluster.py", "--ray_name", {"inputValue":
+          "ray_name"}, "--run_id", {"inputValue": "run_id"}, "--ray_head_options",
+          {"inputValue": "ray_head_options"}, "--ray_worker_options", {"inputValue":
+          "ray_worker_options"}, "--other_secrets", {"inputValue": "other_secrets"},
+          "--server_url", {"inputValue": "server_url"}, "--additional_params", {"inputValue":
+          "additional_params"}], "image": "quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest"}},
+          "inputs": [{"description": "Ray cluster user name", "name": "ray_name",
+          "type": "String"}, {"description": "The KFP Run ID", "name": "run_id", "type":
+          "String"}, {"default": "{}", "description": "ray head configuration", "name":
+          "ray_head_options", "type": "JsonObject"}, {"default": "{}", "description":
+          "ray worker configuration", "name": "ray_worker_options", "type": "JsonObject"},
+          {"default": "{}", "description": "secrets, except S3 secret, that transformers
+          need", "name": "other_secrets", "type": "JsonObject"}, {"default": "", "description":
+          "url of api server", "name": "server_url", "type": "String"}, {"default":
+          "{}", "description": "additional parameters", "name": "additional_params",
+          "type": "String"}], "name": "Start Ray Cluster"}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "f7c7509ad34bbc6bac70adc9ca3d9fd0dbb4b827a8e53de47ccde8fa2cdf93a8", "url":
+          "../../../../kfp/kfp_ray_components/createRayClusterComponent.yaml"}', pipelines.kubeflow.org/arguments.parameters: '{"additional_params":
+          "{{inputs.parameters.additional_params}}", "other_secrets": "{{inputs.parameters.other_secrets}}",
+          "ray_head_options": "{{inputs.parameters.ray_head_options}}", "ray_name":
+          "{{inputs.parameters.ray_name}}", "ray_worker_options": "{{inputs.parameters.ray_worker_options}}",
+          "run_id": "{{workflow.uid}}", "server_url": "{{inputs.parameters.server_url}}"}',
+        pipelines.kubeflow.org/max_cache_staleness: P0D}
+    activeDeadlineSeconds: 7200
+  - name: stop-ray-cluster
+    container:
+      args: []
+      command: [python, -u, /pipelines/component/src/delete_ray_cluster.py, --ray_name,
+        '{{inputs.parameters.ray_name}}', --run_id, '{{workflow.uid}}', --server_url,
+        '{{inputs.parameters.server_url}}', --additional_params, '{{inputs.parameters.additional_params}}']
+      image: quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest
+      imagePullPolicy: IfNotPresent
+    inputs:
+      parameters:
+      - {name: additional_params}
+      - {name: ray_name}
+      - {name: server_url}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.22
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Cleans
+          and shutdowns the Ray cluster", "implementation": {"container": {"command":
+          ["python", "-u", "/pipelines/component/src/delete_ray_cluster.py", "--ray_name",
+          {"inputValue": "ray_name"}, "--run_id", {"inputValue": "run_id"}, "--server_url",
+          {"inputValue": "server_url"}, "--additional_params", {"inputValue": "additional_params"}],
+          "image": "quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest"}},
+          "inputs": [{"description": "Ray cluster user name", "name": "ray_name",
+          "type": "String"}, {"description": "The KFP Run ID", "name": "run_id", "type":
+          "String"}, {"default": "", "description": "url of api server", "name": "server_url",
+          "type": "String"}, {"default": "{}", "description": "additional parameters",
+          "name": "additional_params", "type": "String"}], "name": "Stop Ray Cluster"}',
+        pipelines.kubeflow.org/component_ref: '{"digest": "c71e2f0d3040f85c188615a6e5d6d3678871c5750135dc000bfaa46868825615",
+          "url": "../../../../kfp/kfp_ray_components/deleteRayClusterComponent.yaml"}',
+        pipelines.kubeflow.org/arguments.parameters: '{"additional_params": "{{inputs.parameters.additional_params}}",
+          "ray_name": "{{inputs.parameters.ray_name}}", "run_id": "{{workflow.uid}}",
+          "server_url": "{{inputs.parameters.server_url}}"}', pipelines.kubeflow.org/max_cache_staleness: P0D}
+    activeDeadlineSeconds: 7200
+  - name: tokenization2arrow-ray-pipeline
+    inputs:
+      parameters:
+      - {name: additional_params}
+      - {name: data_checkpointing}
+      - {name: data_data_sets}
+      - {name: data_files_to_use}
+      - {name: data_max_files}
+      - {name: data_num_samples}
+      - {name: data_s3_access_secret}
+      - {name: data_s3_config}
+      - {name: other_secrets}
+      - {name: ray_head_options}
+      - {name: ray_name}
+      - {name: ray_worker_options}
+      - {name: runtime_actor_options}
+      - {name: runtime_code_location}
+      - {name: runtime_pipeline_id}
+      - {name: server_url}
+      - {name: tkn_chunk_size}
+      - {name: tkn_doc_content_column}
+      - {name: tkn_doc_id_column}
+      - {name: tkn_text_lang}
+      - {name: tkn_tokenizer}
+      - {name: tkn_tokenizer_args}
+    dag:
+      tasks:
+      - name: exit-handler-1
+        template: exit-handler-1
+        arguments:
+          parameters:
+          - {name: additional_params, value: '{{inputs.parameters.additional_params}}'}
+          - {name: data_checkpointing, value: '{{inputs.parameters.data_checkpointing}}'}
+          - {name: data_data_sets, value: '{{inputs.parameters.data_data_sets}}'}
+          - {name: data_files_to_use, value: '{{inputs.parameters.data_files_to_use}}'}
+          - {name: data_max_files, value: '{{inputs.parameters.data_max_files}}'}
+          - {name: data_num_samples, value: '{{inputs.parameters.data_num_samples}}'}
+          - {name: data_s3_access_secret, value: '{{inputs.parameters.data_s3_access_secret}}'}
+          - {name: data_s3_config, value: '{{inputs.parameters.data_s3_config}}'}
+          - {name: other_secrets, value: '{{inputs.parameters.other_secrets}}'}
+          - {name: ray_head_options, value: '{{inputs.parameters.ray_head_options}}'}
+          - {name: ray_name, value: '{{inputs.parameters.ray_name}}'}
+          - {name: ray_worker_options, value: '{{inputs.parameters.ray_worker_options}}'}
+          - {name: runtime_actor_options, value: '{{inputs.parameters.runtime_actor_options}}'}
+          - {name: runtime_code_location, value: '{{inputs.parameters.runtime_code_location}}'}
+          - {name: runtime_pipeline_id, value: '{{inputs.parameters.runtime_pipeline_id}}'}
+          - {name: server_url, value: '{{inputs.parameters.server_url}}'}
+          - {name: tkn_chunk_size, value: '{{inputs.parameters.tkn_chunk_size}}'}
+          - {name: tkn_doc_content_column, value: '{{inputs.parameters.tkn_doc_content_column}}'}
+          - {name: tkn_doc_id_column, value: '{{inputs.parameters.tkn_doc_id_column}}'}
+          - {name: tkn_text_lang, value: '{{inputs.parameters.tkn_text_lang}}'}
+          - {name: tkn_tokenizer, value: '{{inputs.parameters.tkn_tokenizer}}'}
+          - {name: tkn_tokenizer_args, value: '{{inputs.parameters.tkn_tokenizer_args}}'}
+  arguments:
+    parameters:
+    - {name: ray_name, value: tkn-kfp-ray}
+    - {name: ray_run_id_KFPv2, value: ''}
+    - {name: ray_head_options, value: '{"cpu": 2, "image": "quay.io/dataprep1/data-prep-kit/tokenization2arrow-ray:latest",
+        "memory": 16}'}
+    - {name: ray_worker_options, value: '{"cpu": 2, "image": "quay.io/dataprep1/data-prep-kit/tokenization2arrow-ray:latest",
+        "max_replicas": 2, "memory": 8, "min_replicas": 2, "replicas": 2}'}
+    - {name: server_url, value: 'http://kuberay-apiserver-service.kuberay.svc.cluster.local:8888'}
+    - {name: data_s3_config, value: '{''lh_environment'': ''STAGING'', ''input_table'':
+        ''ibmdatapile.academic.ieee'', ''input_dataset'': '''', ''input_version'':
+        ''main'', ''output_table'': ''processed.ibmdatapile.academic.ieee.lh_tk2arrow_kfptest'',
+        ''output_path'': ''lh-test/tables/processed/ibmdatapile/academic/ieee/lh_tk2arrow_kfptest'',
+        ''da_class'': ''data_processing.data_access.data_access_lh.DataAccessLakeHouse'',
+        ''output_type'': [''file'']}'}
+    - {name: data_s3_access_secret, value: cos-lh-access}
+    - {name: other_secrets, value: '{"lh-token-touma": {"DPL_LAKEHOUSE_TOKEN": "lh-token"}}'}
+    - {name: data_max_files, value: '2'}
+    - {name: data_num_samples, value: '-1'}
+    - name: data_checkpointing
+      value: "False"
+    - {name: data_data_sets, value: ''}
+    - {name: data_files_to_use, value: '[''.parquet'']'}
+    - {name: runtime_actor_options, value: '{"num_cpus": 0.8}'}
+    - {name: runtime_pipeline_id, value: pipeline_id}
+    - {name: runtime_code_location, value: '{"commit_hash": "12345", "github": "github",
+        "path": "path"}'}
+    - {name: tkn_tokenizer, value: hf-internal-testing/llama-tokenizer}
+    - {name: tkn_doc_id_column, value: document_id}
+    - {name: tkn_doc_content_column, value: contents}
+    - {name: tkn_text_lang, value: en}
+    - {name: tkn_tokenizer_args, value: cache_dir=/tmp/hf}
+    - {name: tkn_chunk_size, value: '0'}
+    - {name: additional_params, value: '{"wait_interval": 2, "wait_cluster_ready_tmout":
+        400, "wait_cluster_up_tmout": 300, "wait_job_ready_tmout": 400, "wait_print_tmout":
+        30, "http_retries": 5, "delete_cluster_delay_minutes": 0}'}
+  serviceAccountName: pipeline-runner
+  onExit: stop-ray-cluster
