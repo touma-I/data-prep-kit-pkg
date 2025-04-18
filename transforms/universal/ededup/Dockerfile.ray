@@ -21,9 +21,10 @@ RUN  pip install data-processing-dist/${DPK_WHEEL_FILE_NAME}[ray]
 
 # Install ray project source
 COPY --chmod=775 --chown=ray:root dpk_ededup/ dpk_ededup/
-COPY --chmod=775 --chown=ray:root requirements.txt requirements.txt
 COPY --chmod=775 --chown=ray:root README.md README.md
+COPY --chmod=775 --chown=ray:root requirements*.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN if [ -f requirements-private.txt ]; then pip install --extra-index-url ${EXTRA_INDEX_URL} -r requirements-private.txt; fi
 
 # Set environment
 ENV PYTHONPATH /home/ray
@@ -33,3 +34,6 @@ ARG BUILD_DATE
 ARG GIT_COMMIT
 LABEL build-date=$BUILD_DATE
 LABEL git-commit=$GIT_COMMIT
+
+ENV DPK_LOG_LEVEL=DEBUG
+
