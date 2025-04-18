@@ -21,6 +21,16 @@ from workflow_support.compile_utils import (
     ComponentUtils,
 )
 
+s3_config = {
+    "lh_environment": "STAGING",
+    "input_table": 'ibmdatapile.academic.ieee',
+    "input_dataset": "",
+    "input_version": "main",
+   'output_table': 'processed.ibmdatapile.academic.ieee.lh_readability_kfptest', 
+   "output_path": 'lh-test/tables/processed/ibmdatapile/academic/ieee/lh_readability_kfptest',
+    "da_class": 'data_processing.data_access.data_access_lh.DataAccessLakeHouse',
+}
+OTHER_SECRETS = {"lh-token-touma": {"DPL_LAKEHOUSE_TOKEN": "lh-token"}}
 
 task_image = "quay.io/dataprep1/data-prep-kit/readability-ray:latest"
 
@@ -117,8 +127,8 @@ def readability(
     # data access
     data_s3_config: str = "{'input_folder': 'test/readability/input/', 'output_folder': 'test/readability/output/'}",
     data_s3_secret: str = S3_SECRET,
-    other_secrets: dict = {},
-    data_max_files: int = -1,
+    other_secrets: dict = OTHER_SECRETS,
+    data_max_files: int = 2,
     data_num_samples: int = -1,
     data_checkpointing: bool = False,
     data_data_sets: str = "",
