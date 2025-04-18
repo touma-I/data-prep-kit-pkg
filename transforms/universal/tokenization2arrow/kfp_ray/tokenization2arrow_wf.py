@@ -32,9 +32,10 @@ DATA_CONFIG = {
     "input_version": "main",
     'output_table': 'processed.ibmdatapile.academic.ieee.lh_tk2arrow_kfptest', 
     "output_path": 'lh-test/tables/processed/ibmdatapile/academic/ieee/lh_tk2arrow_kfptest',
-    "da_class": 'dpk_data_access_lh.DataAccessLakeHouse',
+    "da_class": 'data_processing.data_access.data_access_lh.DataAccessLakeHouse',
     "output_type": ["file"]
 }
+#    "da_class": 'dpk_data_access_lh.DataAccessLakeHouse',
 
 LAKEHOUSE_TOKEN = {"lh-token-touma": {"DPL_LAKEHOUSE_TOKEN": "lh-token"}}
 task_image = "quay.io/dataprep1/data-prep-kit/tokenization2arrow-ray:latest"

@@ -7,9 +7,11 @@ USER root
 RUN chown ray:root /home/ray && chmod g=u /home/ray
 USER ray
 
+ARG EXTRA_INDEX_URL
 # install libraries
-COPY requirements.txt requirements.txt
+COPY requirements*.txt .
 RUN pip install --no-cache-dir -r  requirements.txt
+RUN if [ -f requirements-private.txt ]; then pip install --extra-index-url ${EXTRA_INDEX_URL} -r requirements-private.txt; fi
 
 ARG DPK_WHEEL_FILE_NAME
 
@@ -28,7 +30,7 @@ RUN cd workflow_support_lib && pip install --no-cache-dir -e .
 RUN pip install --no-cache-dir pydantic==2.6.3
 
 # remove credentials-containing file
-RUN rm requirements.txt
+RUN rm requirements*.txt
 # components
 COPY --chmod=775 --chown=ray:root ./src /pipelines/component/src
 

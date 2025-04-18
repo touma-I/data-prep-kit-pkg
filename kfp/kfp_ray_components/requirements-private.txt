@@ -1,0 +1,7 @@
+# force the version for boto3 and boto-core that is required by dmf-lib before installing data-prep-kit
+boto3>=1.35.74,<1.35.94
+# Missing some packages from 1.9.2
+# from cli.cli_utils import TextOutput
+# ModuleNotFoundError: No module named 'cli'
+dmf-lib==1.9.1
+
