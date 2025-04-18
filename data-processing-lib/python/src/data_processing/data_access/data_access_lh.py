@@ -12,6 +12,7 @@
 
 import json
 from typing import Any
+import traceback
 
 import pyarrow
 from data_processing.data_access import DataAccess, DataAccessS3
@@ -464,15 +465,20 @@ class DataAccessLakeHouse(DataAccess):
         
         if self.output_type == 'file':
             return self.S3.save_file(path, data)
-        
-        table = TransformUtils.convert_binary_to_arrow(data=data)
+        try:
+            table = TransformUtils.convert_binary_to_arrow(data=data)
+        except:
+            logger.error(f"{traceback.format_exc()}")
+            return self.S3.save_file(path, data)
+
         if self.output_folder is None:
             logger.error(f"{self.__class__.__name__} (prefix={self.prefix}) Save_file: Lake house is not configured, operation skipped")
             return None
-        
+        ## MT
+        ## Transforms tend to use data sources as scratch pad, saving all kind of stuff
         if table is None:
-            logger.error(f"{self.__class__.__name__} (prefix={self.prefix}) Save_file: failed to convert to arrow {len(data)}")
-            return None, 0
+            logger.error(f"{self.__class__.__name__} (prefix={self.prefix}) Save_file as binary: failed to convert to arrow {len(data)}")
+            return self.S3.save_file(path, data)
         
         return self.save_table(path, table)
 
@@ -503,5 +509,5 @@ class DataAccessLakeHouse(DataAccess):
                             directory is returned (False)
         :return: A dictionary of file names/binary content will be returned
         """
-        logger.debug(f"{self.__class__.__name__} (prefix={self.prefix}): save_table")
+        logger.debug(f"{self.__class__.__name__} (prefix={self.prefix}): get_Folder_files")
         return self.S3.get_folder_files(path=path, extensions=extensions, return_data=return_data)

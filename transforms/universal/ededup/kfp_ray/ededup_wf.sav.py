@@ -21,21 +21,11 @@ from workflow_support.compile_utils import (
     ComponentUtils,
 )
 
-s3_config = {
-    "lh_environment": "STAGING",
-    "input_table": 'ibmdatapile.academic.ieee',
-    "input_dataset": "",
-    "input_version": "main",
-   'output_table': 'processed.ibmdatapile.academic.ieee.lh_ededup_kfptest', 
-   "output_path": 'lh-test/tables/processed/ibmdatapile/academic/ieee/lh_ededup_kfptest',
-    "da_class": 'data_processing.data_access.data_access_lh.DataAccessLakeHouse',
-}
-OTHER_SECRETS = {"lh-token-touma": {"DPL_LAKEHOUSE_TOKEN": "lh-token"}}
 
 task_image = "quay.io/dataprep1/data-prep-kit/ededup-ray:latest"
 
 # The secret name containing the s3 credentials.
-S3_SECRET = "cos-lh-access"
+S3_SECRET = "s3-secret"
 
 # the name of the job script
 EXEC_SCRIPT_NAME: str = "-m dpk_ededup.ray.transform"
@@ -96,7 +86,6 @@ def compute_execution_params(
         "ededup_num_hashes": ededup_num_hashes,
     }
 
-
 # KFPv1 and KFP2 uses different methods to create a component from a function. KFPv1 uses the
 # `create_component_from_func` function, but it is deprecated by KFPv2 and so has a different import path.
 # KFPv2 recommends using the `@dsl.component` decorator, which doesn't exist in KFPv1. Therefore, here we use
@@ -138,10 +127,7 @@ def ededup(
     ray_name: str = "ededup-kfp-ray",  # name of Ray cluster
     ray_run_id_KFPv2: str = "",   # Ray cluster unique ID used only in KFP v2
     # Add image_pull_secret and image_pull_policy to ray workers if needed
-    ray_head_options: dict = {"cpu": 1, 
-                              "memory": 8, 
-                              "image": task_image,
-                              },
+    ray_head_options: dict = {"cpu": 1, "memory": 4, "image": task_image},
     ray_worker_options: dict = {
         "replicas": 2,
         "max_replicas": 2,
@@ -152,10 +138,10 @@ def ededup(
     },
     server_url: str = "http://kuberay-apiserver-service.kuberay.svc.cluster.local:8888",
     # data access. checkpointing is not supported by dedup
-    data_s3_config: str = str(s3_config),
+    data_s3_config: str = "{'input_folder': 'test/ededup/input/', 'output_folder': 'test/ededup/output'}",
     data_s3_access_secret: str = S3_SECRET,
-    other_secrets: dict = OTHER_SECRETS,
-    data_max_files: int = 1,
+    other_secrets: dict = {},
+    data_max_files: int = -1,
     data_num_samples: int = -1,
     # orchestrator
     runtime_actor_options: dict = {"num_cpus": 0.8},
@@ -295,8 +281,8 @@ def ededup(
             kubernetes.use_secret_as_env(task=execute_job, secret_name=S3_SECRET, secret_key_to_env=env2key)
         else:
             ComponentUtils.set_s3_env_vars_to_component(execute_job, data_s3_access_secret)
-            ComponentUtils.add_secret_env_vars_to_component(execute_job, OTHER_SECRETS)
         execute_job.after(ray_cluster)
+
 
 if __name__ == "__main__":
     # Compiling the pipeline
