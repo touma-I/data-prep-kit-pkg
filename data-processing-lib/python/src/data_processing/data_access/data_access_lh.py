@@ -378,20 +378,14 @@ class DataAccessLakeHouse(DataAccess):
             metadata["target"]["snapshot_id"]= "Undefined"
         else:
             metadata["target"]["type"]="table"
-            metadata["target"]["snapshot_id"]= str(self.lh.get_output_table_metadata().snapshot_id),
-
+            metadata["target"]["snapshot_id"]= str(self.lh.get_output_table_metadata().snapshot_id)
+        _json=json.dumps(metadata, indent=2).encode()
+        logger.debug(f"Job metadata: {_json}")
         l, repl = self.S3.save_file(
-            path=f"{self.S3.output_folder.rstrip('/')}/metadata.json", data=json.dumps(metadata, indent=2).encode()
+            path=f"{self.S3.output_folder.rstrip('/')}/metadata.json", data=_json
         )
         if repl is None:
             return repl
-        # Save metadata to LH
-        source_name = self.lh.dataset
-        target_name = self.lh.dataset
-        if self.lh.dataset == "":
-            source_name = self.lh.input_table_name.split(".")[-1]
-            target_name = self.lh.output_table_name.split(".")[-1]
-
         stats = JobStats(
             release_id=metadata["pipeline"],
             job_details=JobDetails(
