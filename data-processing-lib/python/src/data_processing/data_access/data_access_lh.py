@@ -111,7 +111,7 @@ class DataAccessLakeHouse(DataAccess):
         :param files_to_use: files extensions of files to include
         """
         self.prefix=config.get('prefix', 'data_')
-        self.output_type=config.get('output_type', 'undefined')
+        self.output_type=config.get('output_type', 'table')
         # superclass expects a self.logger ?!?! fix that
         self.logger = get_logger(__name__)
         logger.info(f"{self.__class__.__name__}  (prefix={self.prefix}): __init__ config: {config}")
@@ -305,8 +305,7 @@ class DataAccessLakeHouse(DataAccess):
         in the case of failure dict is None
         """
         logger.debug(f"{self.__class__.__name__} (prefix={self.prefix}): save_table- {path}")
-        if self.output_type =='undefined':
-            self.output_type = 'table'
+
         if self.output_folder is None:
             logger.error(f"{self.__class__.__name__} (prefix={self.prefix}) Save_table: Lake house is not configured, operation skipped")
             return None, 0
@@ -315,19 +314,16 @@ class DataAccessLakeHouse(DataAccess):
             table_with_metadata = self._add_table_metadata(table=table)
             # Save table to S3
             l, res, retries = self.S3.save_table(path=path, table=table_with_metadata)
-            # logger.info(f"{path}, {l}, {res}, {retries}")
-            # if repl is None:
-            #    return l, {}
 
             # check if table exists and create output table using schema from pyarrow table
             self.lh.check_and_create_output_table_from_pyarrow(table)
             # update output Iceberg table
             status = self.lh.update_table(path)
-            # logger.info(f"{status}")
         except:
             # Save table so we can do some debugging on the error
             logger.error(f"{self.__class__.__name__} (prefix={self.prefix}): save_table- {path} failed- reverting to S3 without metadata")
             l, res, retries = self.S3.save_table(path=path, table=table)
+            raise
 
         return res, retries
 
@@ -369,25 +365,21 @@ class DataAccessLakeHouse(DataAccess):
         except:
             ## We are not always successful in building an output table
             ## In some instances, we are just saving files to S3
+            logger.debug("output_table_metadata is Not None and self.output_type: {self.output_type}")
             pass
-        if self.output_type == 'file' or output_table_metadata is None:
-            metadata["target"] = {
+        metadata["target"] = {
                 "name": self.lh.output_table_name,
-                "type": "file",
-                "snapshot_id": "Undefined",
                 "path": self.lh.output_path,
                 "dataset": self.lh.dataset,
                 "version": self.lh.version,
             }
+        if self.output_type == 'file' or output_table_metadata is None:
+            metadata["target"]["type"]="file"
+            metadata["target"]["snapshot_id"]= "Undefined"
         else:
-            metadata["target"] = {
-                "name": self.lh.output_table_name,
-                "type": "table",
-                "snapshot_id": str(self.lh.get_output_table_metadata().snapshot_id),
-                "dataset": self.lh.dataset,
-                "version": self.lh.version,
-                "path": self.lh.output_path,
-        }
+            metadata["target"]["type"]="table"
+            metadata["target"]["snapshot_id"]= str(self.lh.get_output_table_metadata().snapshot_id),
+
         l, repl = self.S3.save_file(
             path=f"{self.S3.output_folder.rstrip('/')}/metadata.json", data=json.dumps(metadata, indent=2).encode()
         )
@@ -434,10 +426,8 @@ class DataAccessLakeHouse(DataAccess):
                 Datasource(
                     name=metadata["target"]["name"],
                     table=metadata["target"]["name"],
-                    # type="dataset",
                     type = metadata["target"]["type"],
                     snapshot_id=metadata["target"]["snapshot_id"],
-                    # name=target_name,
                     version=metadata["target"]["version"],
                     path=[metadata["target"]["path"]],
                 )
@@ -449,9 +439,8 @@ class DataAccessLakeHouse(DataAccess):
         self.lh.save_stats(stats)
 
         ## MT
-        #Raise error if we could not  create output table
-        assert self.output_type == 'table' and output_table_metadata is None
- 
+        #Raise error if we could not create output table when specifically set
+        assert ((self.output_type != 'table') or (output_table_metadata is not None))
 
     def get_file(self, path: str) -> bytes:
         """
@@ -493,7 +482,7 @@ class DataAccessLakeHouse(DataAccess):
             logger.debug(f"{traceback.format_exc()}")
 
         ## MT
-        ## Transforms tend to use data sources as scratch pad, saving all kind of stuff
+        ## Transforms tend to use data sources for saving all kind of stuff
         if table is None:
             logger.error(f"{self.__class__.__name__} (prefix={self.prefix}) Save_file as binary: {path} Failed to convert to arrow {len(data)}")
             return self.S3.save_file(path, data)
