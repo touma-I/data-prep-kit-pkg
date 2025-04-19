@@ -21,11 +21,22 @@ from workflow_support.compile_utils import (
     ComponentUtils,
 )
 
+s3_config = {
+    "lh_environment": "STAGING",
+    "input_table": 'ibmdatapile.academic.ieee',
+    "input_dataset": "",
+    "input_version": "main",
+   'output_table': 'processed.ibmdatapile.academic.ieee.lh_docid_kfptest', 
+   "output_path": 'lh-test/tables/processed/ibmdatapile/academic/ieee/lh_docid_kfptest',
+    "da_class": 'data_processing.data_access.data_access_lh.DataAccessLakeHouse',
+}
+OTHER_SECRETS = {"lh-token-touma": {"DPL_LAKEHOUSE_TOKEN": "lh-token"}}
+
 
 task_image = "quay.io/dataprep1/data-prep-kit/doc_id-ray:latest"
 
 # The secret name containing the s3 credentials.
-S3_SECRET = "s3-secret"
+S3_SECRET = "cos-lh-access"
 
 # the name of the job script
 EXEC_SCRIPT_NAME: str = "-m dpk_doc_id.ray.transform"
@@ -119,10 +130,10 @@ def doc_id(
     },
     server_url: str = "http://kuberay-apiserver-service.kuberay.svc.cluster.local:8888",
     # data access
-    data_s3_config: str = "{'input_folder': 'test/doc_id/input/', 'output_folder': 'test/doc_id/output/'}",
-    data_s3_access_secret: str = S3_SECRET,
-    other_secrets: dict = {},
-    data_max_files: int = -1,
+    data_s3_config: str = str(s3_config),
+    data_s3_secret: str = S3_SECRET,
+    other_secrets: dict = OTHER_SECRETS,
+    data_max_files: int = 1,
     data_num_samples: int = -1,
     data_checkpointing: bool = False,
     data_data_sets: str = "",
@@ -234,7 +245,7 @@ def doc_id(
             env2key = ComponentUtils.set_secret_key_to_env()
             kubernetes.use_secret_as_env(task=ray_cluster, secret_name=S3_SECRET, secret_key_to_env=env2key)
         else:
-            ComponentUtils.set_s3_env_vars_to_component(ray_cluster, data_s3_access_secret)
+            ComponentUtils.set_s3_env_vars_to_component(ray_cluster, data_s3_secret)
         ray_cluster.after(compute_exec_params)
         # Execute job
         execute_job = execute_ray_jobs_op(
@@ -252,10 +263,11 @@ def doc_id(
             
             # FIXME: Due to kubeflow/pipelines#10914, secret names cannot be provided as pipeline arguments.
             # As a workaround, the secret name is hard coded.
-            env2key = ComponentUtils.set_secret_key_to_env(prefix="jjj")
+            env2key = ComponentUtils.set_secret_key_to_env()
             kubernetes.use_secret_as_env(task=execute_job, secret_name=S3_SECRET, secret_key_to_env=env2key)
         else:
-            ComponentUtils.set_s3_env_vars_to_component(execute_job, data_s3_access_secret)
+            ComponentUtils.set_s3_env_vars_to_component(execute_job, data_s3_secret)
+            ComponentUtils.add_secret_env_vars_to_component(execute_job, OTHER_SECRETS)
         execute_job.after(ray_cluster)
 
 
