@@ -14,35 +14,47 @@ import os
 import kfp.compiler as compiler
 import kfp.components as comp
 import kfp.dsl as dsl
+from python_apiserver_client.params import (
+    EnvironmentVariables,
+    EnvVarFrom,
+    EnvVarSource,
+    environment_variables_from_secrets,
+
+)
 from workflow_support.compile_utils import (
     DEFAULT_KFP_COMPONENT_SPEC_PATH,
     ONE_HOUR_SEC,
     ONE_WEEK_SEC,
     ComponentUtils,
 )
-from python_apiserver_client.params import (
-        EnvironmentVariables,
-        EnvVarFrom,
-        EnvVarSource,
-)
 
-# The name of the secret that holds the HugginFace token
-HF_SECRET = "hf-secret"
-# The secret key that holds the HugginFace token
-HF_SECRET_KEY = "hf-token"
+S3_SECRET = "cos-lh-access"
+DATA_CONFIG = {
+    "lh_environment": "STAGING",
+    "input_table": 'ibmdatapile.academic.ieee',
+    "input_dataset": "",
+    "input_version": "main",
+    'output_table': 'processed.ibmdatapile.academic.ieee.lh_gw_mt_kfptest', 
+    "output_path": 'lh-test/tables/processed/ibmdatapile/academic/ieee/lh_gw_mt_kfptest',
+    "da_class": 'data_processing.data_access.data_access_lh.DataAccessLakeHouse',
+}
 
-S3_SECRET="s3-secret"
+lh_secret = {"lh-token-touma": {"DPL_LAKEHOUSE_TOKEN": "lh-token"}}
+hf_secret = {"hf-secret": {"HF_READ_ACCESS_TOKEN": "hf-token"}}
+
+envs=environment_variables_from_secrets([lh_secret, hf_secret])
+
 
 task_image = "quay.io/dataprep1/data-prep-kit/gneissweb_classification-ray:latest"
+base_kfp_image = "quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest"
 
 # the name of the job script
 EXEC_SCRIPT_NAME: str = "-m dpk_gneissweb_classification.ray.transform"
 
-# components
-base_kfp_image = "quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest"
 
 # path to kfp component specifications files
 component_spec_path = os.getenv("KFP_COMPONENT_SPEC_PATH", DEFAULT_KFP_COMPONENT_SPEC_PATH)
+
 
 # compute execution parameters. Here different transforms might need different implementations. As
 # a result, instead of creating a component we are creating it in place here.
@@ -63,7 +75,6 @@ def compute_exec_params_func(
     gcls_output_score_column_name: str,
 ) -> dict:
     from runtime_utils import KFPUtils
-
     return {
         "data_s3_config": data_s3_config,
         "data_max_files": data_max_files,
@@ -109,8 +120,6 @@ TASK_NAME: str = "gneissweb_classification"
 # which will set it as an environment variable in the Ray nodes.
 # In this option the secret name can be set at runtime
 # but is dependent on the KFP version.
-env_v = EnvVarFrom(source=EnvVarSource.SECRET, name=HF_SECRET, key=HF_SECRET_KEY)
-envs = EnvironmentVariables(from_ref={"HF_READ_ACCESS_TOKEN": env_v})
 
 
 @dsl.pipeline(
@@ -122,34 +131,35 @@ def gneissweb_classification(
     ray_name: str = "gneissweb_classification-kfp-ray",  # name of Ray cluster
     ray_run_id_KFPv2: str = "",  # Ray cluster unique ID used only in KFP v2
     # Add image_pull_secret and image_pull_policy to ray workers if needed
-    ray_head_options: dict = {"cpu": 16, "memory": 16, "image": task_image, "environment": envs.to_dict()},
+    ray_head_options: dict = {"cpu": 1, "memory": 8, "image": task_image, "environment": envs.to_dict()},
     ray_worker_options: dict = {
-        "replicas": 1,
-        "max_replicas": 1,
-        "min_replicas": 1,
-        "cpu": 16,
+        "replicas": 2,
+        "max_replicas": 2,
+        "min_replicas": 2,
+        "cpu": 2,
         "memory": 16,
         "image": task_image,
         "environment": envs.to_dict()
     },
     server_url: str = "http://kuberay-apiserver-service.kuberay.svc.cluster.local:8888",
     # data access
-    data_s3_config: str = "{'input_folder': 'test/gneissweb_classification/input', 'output_folder': 'test/gneissweb_classification/output/'}",
+    data_s3_config: str = str(DATA_CONFIG),
     data_s3_secret: str = S3_SECRET,
-    other_secrets: dict = {},
-    data_max_files: int = -1,
+    data_max_files: int = 2,
     data_num_samples: int = -1,
+    other_secrets: dict = {},
     data_checkpointing: bool = False,
     # orchestrator
     runtime_actor_options: dict = {"num_cpus": 0.8},
     runtime_pipeline_id: str = "pipeline_id",
     runtime_code_location: dict = {"github": "github", "commit_hash": "12345", "path": "path"},
     # gneissweb_classification parameters
-    gcls_model_url: str = "ibm-granite/GneissWeb.Quality_annotator",
-    gcls_model_file_name: str = "fasttext_gneissweb_quality_annotator.bin",
-    gcls_content_column_name: str = "text",
-    gcls_output_label_column_name: str = "cosmo_fastText_label",
-    gcls_output_score_column_name: str = "cosmo_fastText_score",
+    gcls_model_url: str = str(["ibm-granite/GneissWeb.Quality_annotator"]),
+    gcls_model_file_name: str = str(["fasttext_gneissweb_quality_annotator.bin"]),
+    gcls_content_column_name: str = "contents",
+    gcls_output_label_column_name: str = str(["cosmo_fasttext_label"]),
+    gcls_output_score_column_name: str = str(["cosmo_fasttext_score"]),
+
     # additional parameters
     additional_params: str = '{"wait_interval": 2, "wait_cluster_ready_tmout": 400, "wait_cluster_up_tmout": 300, "wait_job_ready_tmout": 400, "wait_print_tmout": 30, "http_retries": 5, "delete_cluster_delay_minutes": 0}',
 ):
@@ -253,7 +263,6 @@ def gneissweb_classification(
         else:
             ComponentUtils.set_s3_env_vars_to_component(ray_cluster, data_s3_secret)
         ray_cluster.after(compute_exec_params)
-
         # Execute job
         execute_job = execute_ray_jobs_op(
             ray_name=ray_name,
@@ -273,8 +282,8 @@ def gneissweb_classification(
             kubernetes.use_secret_as_env(task=execute_job, secret_name=S3_SECRET, secret_key_to_env=env2key)
         else:
             ComponentUtils.set_s3_env_vars_to_component(execute_job, data_s3_secret)
+            ComponentUtils.add_secret_env_vars_to_component(execute_job, lh_secret)
         execute_job.after(ray_cluster)
-
 
 if __name__ == "__main__":
     # Compiling the pipeline

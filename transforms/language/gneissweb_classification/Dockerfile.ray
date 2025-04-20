@@ -12,6 +12,7 @@ RUN pip install --upgrade --no-cache-dir pip
 # install pytest
 RUN pip install --no-cache-dir pytest
 ARG DPK_WHEEL_FILE_NAME
+ARG EXTRA_INDEX_URL
 
 # set up environment required to install and use huggingface and fasttext
 USER root
@@ -26,8 +27,9 @@ RUN  pip install data-processing-dist/${DPK_WHEEL_FILE_NAME}[ray]
 
 
 COPY --chmod=775 --chown=ray:root dpk_gneissweb_classification/ dpk_gneissweb_classification/
-COPY --chmod=775 --chown=ray:root requirements.txt requirements.txt 
+COPY --chmod=775 --chown=ray:root requirements*.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN if [ -f requirements-private.txt ]; then pip install --extra-index-url ${EXTRA_INDEX_URL} -r requirements-private.txt; fi
 
 # clean up apt
 USER root 
@@ -44,3 +46,6 @@ ARG BUILD_DATE
 ARG GIT_COMMIT
 LABEL build-date=$BUILD_DATE
 LABEL git-commit=$GIT_COMMIT
+
+ENV DPK_LOG_LEVEL=DEBUG
+

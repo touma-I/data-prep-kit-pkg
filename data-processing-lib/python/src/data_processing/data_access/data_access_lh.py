@@ -305,6 +305,7 @@ class DataAccessLakeHouse(DataAccess):
         in the case of failure dict is None
         """
         logger.debug(f"{self.__class__.__name__} (prefix={self.prefix}): save_table- {path}")
+        logger.debug(f"{self.__class__.__name__} (prefix={self.prefix}): columns- {table.column_names}")
 
         if self.output_folder is None:
             logger.error(f"{self.__class__.__name__} (prefix={self.prefix}) Save_table: Lake house is not configured, operation skipped")
