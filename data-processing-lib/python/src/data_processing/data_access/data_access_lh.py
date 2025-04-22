@@ -360,21 +360,13 @@ class DataAccessLakeHouse(DataAccess):
             "path": self.S3.input_folder,
             "extra": {"partition_filter": json.dumps([ob.__dict__ for ob in self.partition_filter])},
         }
-        output_table_metadata=None
-        try:
-            output_table_metadata= self.lh.get_output_table_metadata()
-        except:
-            ## We are not always successful in building an output table
-            ## In some instances, we are just saving files to S3
-            logger.debug("output_table_metadata is Not None and self.output_type: {self.output_type}")
-            pass
         metadata["target"] = {
                 "name": self.lh.output_table_name,
                 "path": self.lh.output_path,
                 "dataset": self.lh.dataset,
                 "version": self.lh.version,
             }
-        if self.output_type == 'file' or output_table_metadata is None:
+        if self.output_type == 'file':
             metadata["target"]["type"]="file"
             metadata["target"]["snapshot_id"]= "Undefined"
         else:
@@ -432,10 +424,6 @@ class DataAccessLakeHouse(DataAccess):
             job_output_stats=metadata["job_output_stats"],
         )
         self.lh.save_stats(stats)
-
-        ## MT
-        #Raise error if we could not create output table when specifically set
-        assert ((self.output_type != 'table') or (output_table_metadata is not None))
 
     def get_file(self, path: str) -> bytes:
         """
