@@ -162,6 +162,18 @@ class DataAccess:
         """
         raise NotImplementedError("Subclasses should implement this!")
 
+    @staticmethod
+    def in_files_to_use(files_to_use, extension):
+        """
+        deterimine if the file extension is in the list of files to process
+        :return: true if extension in list
+        """
+        if files_to_use is not None:
+            l=[x for x in [extension, '*','.*'] if x in files_to_use]
+            return len(l) > 0
+        return True
+
+
     def _get_files_folder(
             self,
             path: str,
@@ -189,10 +201,11 @@ class DataAccess:
                 break
             # Only use specified files
             f_name = str(file["name"])
-            if files_to_use is not None:
-                name_extension = TransformUtils.get_file_extension(f_name)
-                if name_extension[1] not in files_to_use:
-                    continue
+            name_extension = TransformUtils.get_file_extension(f_name)
+
+            if not DataAccess.in_files_to_use(files_to_use, name_extension[1]):
+                continue
+
             p_list.append(file)
             size = file["size"]
             total_input_file_size += size
@@ -257,9 +270,8 @@ class DataAccess:
                 break
             f_name = file["name"]
             name_extension = TransformUtils.get_file_extension(f_name)
-            if self.files_to_use is not None:
-                if name_extension[1] not in self.files_to_use:
-                    continue
+            if not DataAccess.in_files_to_use(self.files_to_use, name_extension[1]):
+                continue
             if name_extension[0] not in output_base_names:
                 p_list.append(f_name)
                 size = file["size"]

@@ -101,50 +101,56 @@ class CodeToParquetTransform(AbstractBinaryTransform):
             lang = self.languages_supported.get(ext, lang)
         return lang
 
+    def _append_row(self, byte_array, module_name, file_name, data, number_of_rows):
+        content_string = TransformUtils.decode_content(byte_array)
+        if content_string and len(content_string) > 0:
+            row_data = {
+                "title": module_name,
+                "document": TransformUtils.get_file_basename(file_name),
+                "contents": content_string,
+                "document_id": str(uuid.uuid4()),
+                "ext": TransformUtils.get_file_extension(module_name)[1],
+                "hash": TransformUtils.str_to_hash(content_string),
+                "size": len(content_string),
+                "date_acquired": datetime.now().isoformat(),
+                "repo_name": os.path.splitext(os.path.basename(file_name))[0],
+            } | self.shared_columns
+            if self.detect_programming_lang:
+                lang = self._get_lang_from_ext(row_data['ext'])
+                row_data["programming_language"] = lang  # TODO column name should be configurable
+            data.append(row_data)
+            number_of_rows += 1
+        else:
+            self.logger.warning(
+                f"file {module_name} is empty. content {content_string}, skipping"
+            )
+        return number_of_rows
+
+        
     def transform_binary(self, file_name: str, byte_array: bytes) -> tuple[list[tuple[bytes, str]], dict[str, Any]]:
         """
         Converts raw data file (ZIP) to Parquet format
         """
+        data = []
+        number_of_rows = 0
         # We currently only process .zip files
         if TransformUtils.get_file_extension(file_name)[1] != ".zip":
             self.logger.warning(f"Got unsupported file type {file_name}, skipping")
-            return [], {}
-        data = []
-        number_of_rows = 0
-        with zipfile.ZipFile(io.BytesIO(bytes(byte_array))) as opened_zip:
-            # Loop through each file member in the ZIP archive
-            for member in opened_zip.infolist():
-                if not member.is_dir():
-                    with opened_zip.open(member) as file:
-                        try:
-                            # Read the content of the file
-                            content_bytes = file.read()
-                            # Decode the content
-                            content_string = TransformUtils.decode_content(content_bytes)
-                            if content_string and len(content_string) > 0:
-                                ext = TransformUtils.get_file_extension(member.filename)[1]
-                                row_data = {
-                                    "title": member.filename,
-                                    "document": TransformUtils.get_file_basename(file_name),
-                                    "contents": content_string,
-                                    "document_id": str(uuid.uuid4()),
-                                    "ext": ext,
-                                    "hash": TransformUtils.str_to_hash(content_string),
-                                    "size": len(content_string),
-                                    "date_acquired": datetime.now().isoformat(),
-                                    "repo_name": os.path.splitext(os.path.basename(file_name))[0],
-                                } | self.shared_columns
-                                if self.detect_programming_lang:
-                                    lang = self._get_lang_from_ext(ext)
-                                    row_data["programming_language"] = lang  # TODO column name should be configurable
-                                data.append(row_data)
-                                number_of_rows += 1
-                            else:
-                                self.logger.warning(
-                                    f"file {member.filename} is empty. content {content_string}, skipping"
-                                )
-                        except Exception as e:
-                            self.logger.warning(f"Exception {str(e)} processing file {member.filename}, skipping")
+            # Decode the content
+            number_of_rows=self._append_row(byte_array, file_name, file_name, ext, data, number_of_rows)   
+        else:
+            with zipfile.ZipFile(io.BytesIO(bytes(byte_array))) as opened_zip:
+                # Loop through each file member in the ZIP archive
+                for member in opened_zip.infolist():
+                    if not member.is_dir():
+                        with opened_zip.open(member) as file:
+                            try:
+                                # Read the content of the file
+                                content_bytes = file.read()
+                                number_of_rows=self._append_row(content_bytes, member.filename, file_name, data, number_of_rows)   
+                            except Exception as e:
+                                self.logger.warning(f"Exception {str(e)} processing file {member.filename}, skipping")
+
         table = pa.Table.from_pylist(data)
         return [(TransformUtils.convert_arrow_to_binary(table=table), ".parquet")], {"number of rows": number_of_rows}
 
