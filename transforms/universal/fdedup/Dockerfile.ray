@@ -20,8 +20,11 @@ RUN  pip install data-processing-dist/${DPK_WHEEL_FILE_NAME}[ray]
 
 ## Copy the python version of the tansform
 COPY --chmod=775 --chown=ray:root dpk_fdedup/ dpk_fdedup/
-COPY --chmod=775 --chown=ray:root requirements.txt requirements.txt
-RUN pip install -r requirements.txt
+
+ARG EXTRA_INDEX_URL
+COPY --chmod=775 --chown=ray:root requirements*.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+RUN if [ -f requirements-private.txt ]; then pip install --extra-index-url ${EXTRA_INDEX_URL} -r requirements-private.txt; fi
 
 # Set environment
 ENV PYTHONPATH /home/ray
