@@ -21,7 +21,8 @@ from workflow_support.compile_utils import (
     ComponentUtils,
 )
 
-s3_config = {
+S3_SECRET = "cos-lh-access"
+DATA_CONFIG = {
     "lh_environment": "STAGING",
     "input_table": 'ibmdatapile.academic.ieee',
     "input_dataset": "",
@@ -30,12 +31,10 @@ s3_config = {
    "output_path": 'lh-test/tables/processed/ibmdatapile/academic/ieee/lh_readability_kfptest',
     "da_class": 'data_processing.data_access.data_access_lh.DataAccessLakeHouse',
 }
-OTHER_SECRETS = {"lh-token-touma": {"DPL_LAKEHOUSE_TOKEN": "lh-token"}}
+lh_secret = {"lh-token-touma": {"DPL_LAKEHOUSE_TOKEN": "lh-token"}}
 
 task_image = "quay.io/dataprep1/data-prep-kit/readability-ray:latest"
 
-# The secret name containing the s3 credentials.
-S3_SECRET = "s3-secret"
 
 # the name of the job script
 EXEC_SCRIPT_NAME: str = "-m dpk_readability.ray.runtime"
@@ -125,9 +124,9 @@ def readability(
     },
     server_url: str = "http://kuberay-apiserver-service.kuberay.svc.cluster.local:8888",
     # data access
-    data_s3_config: str = "{'input_folder': 'test/readability/input/', 'output_folder': 'test/readability/output/'}",
+    data_s3_config: str = str(DATA_CONFIG),
     data_s3_secret: str = S3_SECRET,
-    other_secrets: dict = OTHER_SECRETS,
+    other_secrets: dict = lh_secret,
     data_max_files: int = 2,
     data_num_samples: int = -1,
     data_checkpointing: bool = False,
@@ -258,6 +257,7 @@ def readability(
             kubernetes.use_secret_as_env(task=execute_job, secret_name=S3_SECRET, secret_key_to_env=env2key)
         else:
             ComponentUtils.set_s3_env_vars_to_component(execute_job, data_s3_secret)
+            ComponentUtils.add_secret_env_vars_to_component(execute_job, lh_secret)
         execute_job.after(ray_cluster)
 
 
