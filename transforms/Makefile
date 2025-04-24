@@ -102,21 +102,9 @@ set-pkg-version:
 
 build-pkg-dist:
 	@# Help: Build package wheel 
-	## Most transforms today don't have a package name.... Need to fix that
-	## In the meantime, we will copy everything to a single folder
-	-rm -fr src
-	mkdir src
-	# Copy all the src folders recursively (not clear if they have subfolders)
-	for x in $(shell find . | grep '[ray| python | spark]/src$$') ; do \
-		echo $$x ; \
-		if [ -d "$$x" ]; then \
-		   cp -r $$x/* src ; \
-		fi \
-	done
-	# Only needs to build the whl
-	git show --no-patch > src/gitshow.txt
+	-mkdir dpk_gitshow
+	git show --no-patch > dpk_gitshow/gitshow.txt
 	$(MAKE) BUILD_WHEEL_EXTRA_ARG=-w .defaults.build-dist
-	-rm -fr src
 
 test-pkg-dist:
 	@# Help: Setup environment and run unit tests for all transforms.
