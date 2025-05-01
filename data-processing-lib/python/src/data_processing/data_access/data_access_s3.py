@@ -73,6 +73,7 @@ class DataAccessS3(DataAccess):
                 valid_config = False
                 logger.error(f"data access factory {prefix}: Could not find output folder in s3 config")
 
+            logger.info(f"{__name__}  (prefix={prefix}): __init__ config: {config}")
             # Maitain support for legacy code
             access_key = config.get("access_key", DPKConfigS3(prefix).S3_KEY)
             secret_key = config.get("secret_key", DPKConfigS3(prefix).S3_SECRET)
@@ -80,7 +81,7 @@ class DataAccessS3(DataAccess):
 
         if access_key is None or secret_key is None:
             valid_config = False
-            logger.error(f"data access factory {prefix}: Missing Credentials {access_key} {secret_key} {endpoint} ")
+            logger.error(f"data access factory {prefix}: Missing Credentials access-key or secret_key for endpoint: {endpoint} ")
 
         return valid_config
 
