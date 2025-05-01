@@ -161,6 +161,7 @@ class DataAccessLakeHouse(DataAccess):
             self.output_folder = self.lh.get_output_data_path()
             logger.debug(f"{self.__class__.__name__}  (prefix={self.prefix}): self.output_folder: {self.output_folder}")
             logger.debug(f"{self.__class__.__name__}  (prefix={self.prefix}): input_folder: {self.lh.get_input_data_path()}")
+        self.input_folder=self.lh.get_input_data_path()
         self.S3 = DataAccessS3(
             config={
                 "input_folder": self.lh.get_input_data_path(),
@@ -347,6 +348,7 @@ class DataAccessLakeHouse(DataAccess):
         defined https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3/client/put_object.html
         in the case of failure dict is None
         """
+            
         logger.info(f"{self.__class__.__name__} (prefix={self.prefix}): save_job_metadata")
         if self.output_folder is None:
             logger.error(f"{self.__class__.__name__} (prefix={self.prefix}): Lake house is not configured, save job metadata operation skipped")
@@ -371,7 +373,14 @@ class DataAccessLakeHouse(DataAccess):
             metadata["target"]["snapshot_id"]= "Undefined"
         else:
             metadata["target"]["type"]="table"
-            metadata["target"]["snapshot_id"]= str(self.lh.get_output_table_metadata().snapshot_id)
+            try:
+                metadata["target"]["snapshot_id"]= str(self.lh.get_output_table_metadata().snapshot_id)
+            except:
+                logger.error(f"Cannot save job metadata. Most likely no data was stored to the lakehoue...")
+                logger.error(f"{traceback.format_exc()}")
+                return None
+
+
         _json=json.dumps(metadata, indent=2).encode()
         logger.debug(f"Job metadata: {_json}")
         l, repl = self.S3.save_file(

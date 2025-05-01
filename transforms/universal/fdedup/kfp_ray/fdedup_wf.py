@@ -16,6 +16,9 @@ import kfp.compiler as compiler
 import kfp.components as comp
 import kfp.dsl as dsl
 from kubernetes import client as k8s_client
+from python_apiserver_client.params import (
+    environment_variables_from_secrets,
+)
 from src.fdedup_compute_execution_params import (
     cluster_analysis_compute_execution_params,
     compute_common_params,
@@ -25,18 +28,33 @@ from src.fdedup_compute_execution_params import (
 )
 from workflow_support.compile_utils import ONE_HOUR_SEC, ONE_WEEK_SEC, ComponentUtils
 
+LH_SECRET = "cos-lh-access"
+INTERMEDIATE_S3_SECRET = "s3-south-secret"
+DATA_CONFIG = {
+        "lh_environment": "STAGING",
+        "input_table": "ibmdatapile.academic.ieee",
+        "input_table": "processed.ibmdatapile.academic.ieee.lh_doc_id_kfptest",
+        "input_dataset": "",
+        "input_version": "main",
+        "output_table": "processed.ibmdatapile.academic.ieee.fdedup_lakehouse_mt",
+        "output_path": "lh-test/tables/processed/ibmdatapile/academic/ieee/fdedup_lakehouse_mt",
+        "da_class": 'data_processing.data_access.data_access_lh.DataAccessLakeHouse',
+}
+LH_TOKEN = {"lh-token-touma": {"DPL_LAKEHOUSE_TOKEN": "lh-token"}}
+SCDATA_S3 = {"s3-south-secret": {"scdata_S3_ACCESS_KEY": "s3-key", "scdata_S3_SECRET_KEY": "s3-secret", "scdata_S3_ENDPOINT": "s3-endpoint"}}
+DCDATA_S3 = {"s3-south-secret": {"dcdata_S3_ACCESS_KEY": "s3-key", "dcdata_S3_SECRET_KEY": "s3-secret", "dcdata_S3_ENDPOINT": "s3-endpoint"}}
 
-task_image = os.getenv("FDEDUP_IMAGE_LOCATION", "quay.io/dataprep1/data-prep-kit/fdedup-ray:latest")
-image_pull_secret = os.getenv("FDEDUP_IMAGE_PULL_SECRET", "my_secret")
+envs=environment_variables_from_secrets([LH_TOKEN, SCDATA_S3, DCDATA_S3])
+
+task_image = "quay.io/dataprep1/data-prep-kit/fdedup-ray:latest"
+base_kfp_image = "quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest"
+
 
 # the name of the job script
-SIGNATURE_CALC_EXEC_SCRIPT_NAME: str = "signature_calc_transform_ray_ibm.py"
-CLUSTER_ANALYSIS_EXEC_SCRIPT_NAME: str = "cluster_analysis_transform_ray_ibm.py"
-GET_DUPLICATE_LIST_EXEC_SCRIPT_NAME: str = "get_duplicate_list_transform_ray_ibm.py"
-DATA_CLEANING_EXEC_SCRIPT_NAME: str = "data_cleaning_transform_ray_ibm.py"
-
-# components
-base_kfp_image = "us.icr.io/cil15-shared-registry/preprocessing-pipelines/kfp-data-processing:0.2.3"
+SIGNATURE_CALC_EXEC_SCRIPT_NAME: str = "-m dpk_fdedup.signature_calc.ray.transform"
+CLUSTER_ANALYSIS_EXEC_SCRIPT_NAME: str = "-m dpk_fdedup.cluster_analysis.ray.transform"
+GET_DUPLICATE_LIST_EXEC_SCRIPT_NAME: str = "-m dpk_fdedup.get_duplicate_list.ray.transform"
+DATA_CLEANING_EXEC_SCRIPT_NAME: str = "-m dpk_fdedup.data_cleaning.ray.transform"
 
 # path to kfp component specifications files
 component_spec_path = "../../../../kfp/kfp_ray_components/"
@@ -116,49 +134,30 @@ def fuzzydedup(
     # Ray cluster
     ray_name: str = "fuzzydedup-kfp-ray",  # name of Ray cluster
     # Add image_pull_secret and image_pull_policy to ray workers if needed
-    ray_head_options: str = json.dumps(
-        {
-            "cpu": 8,
-            "memory": 64,
-            "image": task_image,
-            "image_pull_secret": image_pull_secret,
-            "imagePullPolicy": "Always",
-        }
-    ),
-    ray_worker_options: str = json.dumps(
-        {
-            "replicas": 20,
-            "max_replicas": 20,
-            "min_replicas": 20,
-            "cpu": 16,
-            "memory": 128,
-            "image": task_image,
-            "image_pull_secret": image_pull_secret,
-            "imagePullPolicy": "Always",
-        }
-    ),
+    ray_head_options: dict = {
+        "cpu": 1,
+        "memory": 8,
+        "image": task_image,
+        "imagePullPolicy": "Always",
+        "environment": envs.to_dict()
+    },
+    ray_worker_options: dict = {
+        "replicas": 2,
+        "max_replicas": 2,
+        "min_replicas": 2,
+        "cpu": 2,
+        "memory": 32,
+        "image": task_image,
+        "imagePullPolicy": "Always",
+        "environment": envs.to_dict()
+    },
     runtime_actor_options: dict = {"num_cpus": 0.8, "memory": 16},
     server_url: str = "http://kuberay-apiserver-service.kuberay.svc.cluster.local:8888",
     # data access. checkpointing is not supported by dedup
-    data_lh_config: dict = {
-        "lh_environment": "STAGING",
-        "input_table": "ibmdatapile.academic.ieee",
-        "input_dataset": "",
-        "input_version": "main",
-        "output_table": "processed.ibmdatapile.academic.ieee.fuzzy_dedup_lakehouse_20241111_01",
-        "output_path": "lh-test/tables/processed/ibmdatapile/academic/ieee/fuzzy_dedup_lakehouse_20241111_01",
-        "token": "YOUR_LAKEHOUSE_TOKEN",
-    },
-    data_s3_config: dict = {},
-    data_s3_access_secret: str = "cos-lh-access",
-    # Use the two config lines below for S3-only IO (without data lakehouse)
-    # data_s3_config: dict = {
-    #     "input_folder": "s3://cos-llm-pile-south/spark_test/fd_xs_dataset_test/",
-    #     "output_folder": "s3://cos-llm-pile-south/spark_test/fuzzy_dedup_test_output_data/kfp_test_1/"
-    # },
-    # data_s3_access_secret: str = "s3-south-secret",
+    data_lh_config: dict = DATA_CONFIG,
+#    other_secrets: dict = LH_TOKEN | SCDATA_S3 | DCDATA_S3,  Does not seem to work with more than 1 secret. Use envs insted
+    other_secrets: dict = {},
     intermediate_s3_folder: str = "s3://cos-llm-pile-south/spark_test/fuzzy_dedup_test_output_data/lh_kfp_test_1/",
-    intermediate_s3_access_secret: str = "s3-south-secret",
     data_max_files: int = 2,
     data_num_samples: int = -1,
     # data_files_to_use: str = "['.parquet']",
@@ -243,19 +242,18 @@ def fuzzydedup(
     clean_up_task = cleanup_ray_op(ray_name=ray_name, run_id=run_id, server_url=server_url)
     ComponentUtils.add_settings_to_component(clean_up_task, ONE_HOUR_SEC * 2)
     # pipeline definition
-    dsl.get_pipeline_conf().set_image_pull_secrets([k8s_client.V1ObjectReference(name="prod-all-icr-io")])
     with dsl.ExitHandler(clean_up_task):
         # compute execution params
         compute_common_exec_params = compute_common_params_op(
             ray_worker_options=ray_worker_options,
             actor_options=runtime_actor_options,
             data_lh_config=data_lh_config,
-            data_s3_config=data_s3_config,
             num_permutations=fdedup_num_permutations,
             n_samples=fdedup_n_samples,
         )
         ComponentUtils.add_settings_to_component(compute_common_exec_params, ONE_HOUR_SEC * 2)
-        ComponentUtils.set_s3_env_vars_to_component(compute_common_exec_params, data_s3_access_secret)
+        ComponentUtils.set_s3_env_vars_to_component(compute_common_exec_params, LH_SECRET)
+        ComponentUtils.add_secret_env_vars_to_component(compute_common_exec_params, LH_TOKEN)
         fdedup_num_segments = compute_common_exec_params.outputs["num_segments"]
         runtime_num_actors = compute_common_exec_params.outputs["num_actors"]
         runtime_actor_cpus = compute_common_exec_params.outputs["actor_cpu"]
@@ -268,9 +266,12 @@ def fuzzydedup(
             ray_head_options=ray_head_options,
             ray_worker_options=ray_worker_options,
             server_url=server_url,
+            other_secrets=other_secrets,
             additional_params=additional_params,
         )
         ComponentUtils.add_settings_to_component(ray_cluster, ONE_HOUR_SEC * 2)
+        ComponentUtils.set_s3_env_vars_to_component(ray_cluster, LH_SECRET)
+
         ray_cluster.after(compute_common_exec_params)
 
         # Get the parameters for the signature calculation job
@@ -279,7 +280,6 @@ def fuzzydedup(
             runtime_actor_cpus=runtime_actor_cpus,
             runtime_actor_memory=runtime_actor_memory,
             data_lh_config=data_lh_config,
-            data_s3_config=data_s3_config,
             intermediate_s3_folder=intermediate_s3_folder,
             data_max_files=data_max_files,
             data_num_samples=data_num_samples,
@@ -313,9 +313,10 @@ def fuzzydedup(
         ComponentUtils.add_settings_to_component(execute_signature_calc_job, ONE_WEEK_SEC)
         # FIXME: see https://github.com/kubeflow/pipelines/issues/10914
         if os.getenv("KFPv2", "0") != "1":
-            ComponentUtils.set_s3_env_vars_to_component(execute_signature_calc_job, data_s3_access_secret)
+            ComponentUtils.set_s3_env_vars_to_component(execute_signature_calc_job, LH_SECRET)
+            ComponentUtils.add_secret_env_vars_to_component(execute_signature_calc_job, LH_TOKEN)
             ComponentUtils.set_s3_env_vars_to_component(
-                execute_signature_calc_job, intermediate_s3_access_secret, prefix="scdata"
+                execute_signature_calc_job, INTERMEDIATE_S3_SECRET, prefix="scdata"
             )
         execute_signature_calc_job.after(compute_signature_calc_exec_params)
 
@@ -324,7 +325,6 @@ def fuzzydedup(
             runtime_num_actors=runtime_num_actors,
             runtime_actor_cpus=runtime_actor_cpus,
             runtime_actor_memory=runtime_actor_memory,
-            data_s3_config=data_s3_config,
             intermediate_s3_folder=intermediate_s3_folder,
             data_max_files=data_max_files,
             data_num_samples=data_num_samples,
@@ -349,14 +349,13 @@ def fuzzydedup(
         ComponentUtils.add_settings_to_component(execute_cluster_analysis_job, ONE_WEEK_SEC)
         # FIXME: see https://github.com/kubeflow/pipelines/issues/10914
         if os.getenv("KFPv2", "0") != "1":
-            ComponentUtils.set_s3_env_vars_to_component(execute_cluster_analysis_job, intermediate_s3_access_secret)
+            ComponentUtils.set_s3_env_vars_to_component(execute_cluster_analysis_job, INTERMEDIATE_S3_SECRET)
         execute_cluster_analysis_job.after(compute_cluster_analysis_exec_params)
 
         compute_get_duplicate_list_exec_params = compute_get_duplicate_list_exec_params_op(
             runtime_num_actors=runtime_num_actors,
             runtime_actor_cpus=runtime_actor_cpus,
             runtime_actor_memory=runtime_actor_memory,
-            data_s3_config=data_s3_config,
             intermediate_s3_folder=intermediate_s3_folder,
             data_max_files=data_max_files,
             data_num_samples=data_num_samples,
@@ -378,7 +377,7 @@ def fuzzydedup(
         ComponentUtils.add_settings_to_component(execute_get_duplicate_list_job, ONE_WEEK_SEC)
         # FIXME: see https://github.com/kubeflow/pipelines/issues/10914
         if os.getenv("KFPv2", "0") != "1":
-            ComponentUtils.set_s3_env_vars_to_component(execute_get_duplicate_list_job, intermediate_s3_access_secret)
+            ComponentUtils.set_s3_env_vars_to_component(execute_get_duplicate_list_job, INTERMEDIATE_S3_SECRET)
         execute_get_duplicate_list_job.after(compute_get_duplicate_list_exec_params)
 
         compute_data_cleaning_exec_params = compute_data_cleaning_exec_params_op(
@@ -387,7 +386,6 @@ def fuzzydedup(
             runtime_actor_memory=runtime_actor_memory,
             data_lh_config=data_lh_config,
             intermediate_s3_folder=intermediate_s3_folder,
-            data_s3_config=data_s3_config,
             data_max_files=data_max_files,
             data_num_samples=data_num_samples,
             runtime_pipeline_id=runtime_pipeline_id,
@@ -412,9 +410,10 @@ def fuzzydedup(
         ComponentUtils.add_settings_to_component(execute_data_cleaning_job, ONE_WEEK_SEC)
         # FIXME: see https://github.com/kubeflow/pipelines/issues/10914
         if os.getenv("KFPv2", "0") != "1":
-            ComponentUtils.set_s3_env_vars_to_component(execute_data_cleaning_job, data_s3_access_secret)
+            ComponentUtils.set_s3_env_vars_to_component(execute_data_cleaning_job, LH_SECRET)
+            ComponentUtils.add_secret_env_vars_to_component(execute_data_cleaning_job, LH_TOKEN)
             ComponentUtils.set_s3_env_vars_to_component(
-                execute_data_cleaning_job, intermediate_s3_access_secret, prefix="dcdata"
+                execute_data_cleaning_job, INTERMEDIATE_S3_SECRET, prefix="dcdata"
             )
         execute_data_cleaning_job.after(compute_data_cleaning_exec_params)
 

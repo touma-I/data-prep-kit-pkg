@@ -34,17 +34,17 @@ class DPKConfigS3(DPKConfig):
     ## use DPKCOnfigS3().S3_KEY or DPKCOnfigS3().S3_SECRET , etc
     ## Can be reconfigured at runtime and for specific prefixes
     ## Allows multiple S3 buckets used simultaneously by the same application each having its own credentia
-    def __init__(self, prefix: str = "data_"):
+    def __init__(self, prefix: str = None):
         self.S3_KEY = DPKConfig._get_first_env_var(
-            [f"{prefix}S3_ACCESS_KEY", f"{prefix}S3_KEY", "S3_ACCESS_KEY", "S3_KEY"]
+            [f"{prefix}S3_ACCESS_KEY", f"{prefix}_S3_ACCESS_KEY", f"{prefix}S3_KEY", f"{prefix}_S3_KEY", "S3_ACCESS_KEY", "S3_KEY"]
         )
         self.S3_SECRET = DPKConfig._get_first_env_var(
-            [f"{prefix}S3_SECRET_KEY", f"{prefix}S3_SECRET", "S3_SECRET_KEY", "S3_SECRET"]
+            [f"{prefix}S3_SECRET_KEY", f"{prefix}_S3_SECRET_KEY", f"{prefix}S3_SECRET", f"{prefix}_S3_SECRET", "S3_SECRET_KEY", "S3_SECRET"]
         )
         self.S3_ENDPOINT = DPKConfig._get_first_env_var(
-            [f"{prefix}S3_ENDPOINT", f"{prefix}S3_URL", "S3_ENDPOINT", "S3_URL"]
+            [f"{prefix}S3_ENDPOINT", f"{prefix}_S3_ENDPOINT", f"{prefix}S3_URL", f"{prefix}_S3_URL", "S3_ENDPOINT", "S3_URL"]
         )
-        self.S3_REGION = DPKConfig._get_first_env_var([f"{prefix}S3_REGION", "S3_REGION"], "us-east")
+        self.S3_REGION = DPKConfig._get_first_env_var([f"{prefix}S3_REGION", f"{prefix}_S3_REGION", "S3_REGION"], "us-east")
 
 
 class DataAccessS3(DataAccess):

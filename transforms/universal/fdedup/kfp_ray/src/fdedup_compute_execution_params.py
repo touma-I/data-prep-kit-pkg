@@ -14,10 +14,9 @@ from typing import Any, NamedTuple
 
 
 def compute_common_params(
-    ray_worker_options: str,  # ray worker configuration
+    ray_worker_options: dict,  # ray worker configuration
     actor_options: dict,  # actor desired configuration
     data_lh_config: dict,  # lakehouse configuration
-    data_s3_config: dict,  # S3 configuration
     num_permutations: int,  # number of permutations (minhashes) per document
     n_samples: int,  # files to sample for number of documents estimation
 ) -> NamedTuple(
@@ -37,18 +36,13 @@ def compute_common_params(
 
     from data_processing.data_access import DataAccessS3
     from data_processing.utils import GB
-    from data_processing_ibm.data_access import DataAccessLakeHouse
+    from data_processing.data_access.data_access_lh import DataAccessLakeHouse
     from runtime_utils import KFPUtils
 
     # get credentials
     s3_key, s3_secret, s3_endpoint = KFPUtils.credentials()
     s3_creds = {"access_key": s3_key, "secret_key": s3_secret, "url": s3_endpoint}
-    if data_lh_config:
-        data_access = DataAccessLakeHouse(s3_credentials=s3_creds, lakehouse_config=data_lh_config)
-    else:  # if data_s3_config:
-        data_access = DataAccessS3(
-            s3_credentials=s3_creds, s3_config=data_s3_config, d_sets=None, checkpoint=False, m_files=-1
-        )
+    data_access = DataAccessLakeHouse(s3_credentials=s3_creds, config=data_lh_config)
     # sample input data
     sampling: dict[str, Any]
     sampling, _ = data_access.sample_input_data(n_samples=n_samples)
@@ -77,7 +71,7 @@ def compute_common_params(
         "num_cpus": actor_cpu,
         "memory": actor_memory,
     }
-    num_actors = KFPUtils.default_compute_execution_params(ray_worker_options, str(actor_config))
+    num_actors = KFPUtils.default_compute_execution_params(str(ray_worker_options), str(actor_config))
 
     print(f"num_actors = {num_actors}")
     from collections import namedtuple
@@ -97,7 +91,6 @@ def signature_calc_compute_execution_params(
     runtime_actor_cpus: float,  # number of CPUS needed for each actor
     runtime_actor_memory: int,  # memory (in bytes) needed by each actor
     data_lh_config: dict,  # data lakehouse configuration
-    data_s3_config: dict,  # S3 I/O config (only if no data lakehouse configuration present)
     intermediate_s3_folder: str,  # S3 bucket where intermediate results are stored
     data_max_files: int,  # max files to process
     data_num_samples: int,  # num samples to process
@@ -148,31 +141,25 @@ def signature_calc_compute_execution_params(
     runtime_actor_options: dict = {"num_cpus": runtime_actor_cpus, "memory": runtime_actor_memory}
     print(f"runtime_actor_options = {runtime_actor_options}")
 
-    if data_lh_config:
-        # when using lakehouse, change the output table to a dummy value,
-        # as the intermediate results will be stored in an S3 bucket, external to the lakehouse
-        data_lh_config_dict = copy.deepcopy(data_lh_config)
-        data_lh_config_dict["output_table"] = "fuzzy_dedup.fuzzy_dedup_dummy"
-        data_lh_config_dict["output_path"] = "lh-test/tables/fuzzy_dedup/fuzzy_dedup_dummy"
-        data_lh_config_dict["dont_save_output_in_lakehouse"] = "true"
-        data_lh_config_str = json.dumps(data_lh_config_dict).replace('"', "'")
-        data_s3_config_str = ""
-        scdata_s3_config_str = json.dumps(
-            {
-                "input_folder": intermediate_s3_folder,
-                "output_folder": intermediate_s3_folder,
-            }
-        ).replace('"', "'")
-    else:
-        # not using lakehouse, will use data_s3_config for both main data access
-        # and signature calculation data access (scdata_s3_config)
-        data_lh_config_str = ""
-        data_s3_config_str = json.dumps(data_s3_config).replace('"', "'")
-        scdata_s3_config_str = json.dumps(data_s3_config).replace('"', "'")
+    # when using lakehouse, change the output table to a dummy value,
+    # as the intermediate results will be stored in an S3 bucket, external to the lakehouse
+    data_lh_config_dict = copy.deepcopy(data_lh_config)
+    data_lh_config_dict["output_table"] = "fuzzy_dedup.fdedup_dummy_mt"
+    data_lh_config_dict["output_path"] = "lh-test/tables/fuzzy_dedup/fdedup_dummy_mt"
+    data_lh_config_dict["output_type"] = "file"
+    data_lh_config_str = json.dumps(data_lh_config_dict).replace('"', "'")
+    data_s3_config_str = ""
+    scdata_s3_config_str = json.dumps(
+        {
+            "region": "us-south",
+            "prefix": "scdata",
+            "input_folder": intermediate_s3_folder,
+            "output_folder": intermediate_s3_folder,
+        }
+    ).replace('"', "'")
 
     return {
         "data_lh_config": data_lh_config_str,
-        "data_s3_config": data_s3_config_str,
         "data_max_files": data_max_files,
         "data_num_samples": data_num_samples,
         "runtime_num_workers": runtime_num_actors,
@@ -198,7 +185,6 @@ def cluster_analysis_compute_execution_params(
     runtime_num_actors: str,  # number of actors computed by KFPUtils.default_compute_execution_params()
     runtime_actor_cpus: float,  # number of CPUS needed for each actor
     runtime_actor_memory: int,  # memory (in bytes) needed by each actor
-    data_s3_config: dict,  # s3 configuration
     intermediate_s3_folder: str,  # s3 folder to store intermediate results
     data_max_files: int,  # max files to process
     data_num_samples: int,  # num samples to process
@@ -233,10 +219,9 @@ def cluster_analysis_compute_execution_params(
 
     # fuzzy parameters
     # Get cluster parameters
-    if data_s3_config:
-        data_s3_config_dict = copy.deepcopy(data_s3_config)
-    else:
-        data_s3_config_dict = {
+    data_s3_config_dict = {
+            "region": "us-south",
+            "prefix": "scdata",
             "input_folder": intermediate_s3_folder,
             "output_folder": intermediate_s3_folder,
         }
@@ -264,7 +249,6 @@ def get_duplicate_list_compute_execution_params(
     runtime_num_actors: str,  # number of actors computed by KFPUtils.default_compute_execution_params()
     runtime_actor_cpus: float,  # number of CPUS needed for each actor
     runtime_actor_memory: int,  # memory (in bytes) needed by each actor
-    data_s3_config: dict,  # s3 configuration
     intermediate_s3_folder: str,  # s3 folder to store intermediate results
     data_max_files: int,  # max files to process
     data_num_samples: int,  # num samples to process
@@ -290,11 +274,9 @@ def get_duplicate_list_compute_execution_params(
     import json
     import os
 
-    # fuzzy parameters
-    if data_s3_config:
-        data_s3_config_dict = copy.deepcopy(data_s3_config)
-    else:
-        data_s3_config_dict = {
+    data_s3_config_dict = {
+            "region": "us-south",
+            "prefix": "scdata",
             "input_folder": intermediate_s3_folder,
             "output_folder": intermediate_s3_folder,
         }
@@ -325,7 +307,6 @@ def data_cleaning_compute_execution_params(
     runtime_actor_cpus: float,  # number of CPUS needed for each actor
     runtime_actor_memory: int,  # memory (in bytes) needed by each actor
     data_lh_config: dict,  # data lakehouse configuration
-    data_s3_config: dict,  # S3 I/O config (only if no data lakehouse configuration present)
     intermediate_s3_folder: str,  # S3 bucket where intermediate results are stored
     data_max_files: int,  # max files to process
     data_num_samples: int,  # num samples to process
@@ -362,37 +343,28 @@ def data_cleaning_compute_execution_params(
         output_subfolder = "duplicates"
     else:  # operation_mode == "annotate"
         output_subfolder = "annotated"
-    if data_lh_config:
-        # when using lakehouse, change the output table to a dummy value,
-        # as the intermediate results will be stored in an S3 bucket, external to the lakehouse
-        data_lh_config_dict = copy.deepcopy(data_lh_config)
-        output_table = data_lh_config["output_table"]
-        output_path = data_lh_config["output_path"]
-        data_lh_config_dict["output_path"] = f"{output_path}_{output_subfolder}"
-        data_lh_config_dict["output_table"] = f"{output_table}_{output_subfolder}"
-        data_lh_config_str = json.dumps(data_lh_config_dict).replace('"', "'")
-        data_s3_config_str = ""
-        dcdata_output_folder = os.path.join(intermediate_s3_folder, output_subfolder)
-        dcdata_s3_config_str = json.dumps(
-            {
-                "input_folder": dcdata_output_folder,
-                "output_folder": dcdata_output_folder,
-            }
-        ).replace('"', "'")
-    else:
-        # not using lakehouse, will use data_s3_config for both main data access
-        # and signature calculation data access (scdata_s3_config)
-        data_lh_config_str = ""
-        data_s3_config_dict = copy.deepcopy(data_s3_config)
-        base_folder = data_s3_config.get("output_folder")
-        data_s3_config_dict["output_folder"] = os.path.join(base_folder, output_subfolder)
-        data_s3_config_str = json.dumps(data_s3_config_dict).replace('"', "'")
-        dcdata_s3_config_str = json.dumps(data_s3_config_dict).replace('"', "'")
+    # when using lakehouse, change the output table to a dummy value,
+    # as the intermediate results will be stored in an S3 bucket, external to the lakehouse
+    data_lh_config_dict = copy.deepcopy(data_lh_config)
+    output_table = data_lh_config["output_table"]
+    output_path = data_lh_config["output_path"]
+    data_lh_config_dict["output_path"] = f"{output_path}_{output_subfolder}"
+    data_lh_config_dict["output_table"] = f"{output_table}_{output_subfolder}"
+    data_lh_config_str = json.dumps(data_lh_config_dict).replace('"', "'")
+    data_s3_config_str = ""
+    dcdata_output_folder = os.path.join(intermediate_s3_folder, output_subfolder)
+    dcdata_s3_config_str = json.dumps(
+        {
+            "region": "us-south",
+            "prefix": "dcdata",
+            "input_folder": dcdata_output_folder,
+            "output_folder": dcdata_output_folder,
+        }
+    ).replace('"', "'")
     duplicate_list_location = os.path.join("docs_to_remove_consolidated", "docs_to_remove_consolidated.parquet")
     runtime_actor_options: dict = {"num_cpus": runtime_actor_cpus, "memory": runtime_actor_memory}
     return {
         "data_lh_config": data_lh_config_str,
-        "data_s3_config": data_s3_config_str,
         "data_max_files": data_max_files,
         "data_num_samples": data_num_samples,
         "runtime_num_workers": runtime_num_actors,
