@@ -14,6 +14,7 @@ import os
 import kfp.compiler as compiler
 import kfp.components as comp
 import kfp.dsl as dsl
+from src.ededup_compute_execution_params import ededup_compute_execution_params
 from workflow_support.compile_utils import (
     DEFAULT_KFP_COMPONENT_SPEC_PATH,
     ONE_HOUR_SEC,
@@ -21,80 +22,30 @@ from workflow_support.compile_utils import (
     ComponentUtils,
 )
 
-s3_config = {
+
+LH_SECRET = "cos-lh-access"
+DATA_CONFIG = {
     "lh_environment": "STAGING",
-    "input_table": 'ibmdatapile.academic.ieee',
+    "input_table": "ibmdatapile.academic.ieee",
+    "input_table": "processed.ibmdatapile.academic.ieee.lh_doc_id_kfptest",
     "input_dataset": "",
     "input_version": "main",
-   'output_table': 'processed.ibmdatapile.academic.ieee.lh_ededup_kfptest', 
-   "output_path": 'lh-test/tables/processed/ibmdatapile/academic/ieee/lh_ededup_kfptest',
+    "output_table": "processed.ibmdatapile.academic.ieee.ededup_lakehouse_mt",
+    "output_path": "lh-test/tables/processed/ibmdatapile/academic/ieee/ededup_lakehouse_mt",
     "da_class": 'data_processing.data_access.data_access_lh.DataAccessLakeHouse',
 }
-OTHER_SECRETS = {"lh-token-touma": {"DPL_LAKEHOUSE_TOKEN": "lh-token"}}
+LH_TOKEN = {"lh-token-touma": {"DPL_LAKEHOUSE_TOKEN": "lh-token"}}
 
 task_image = "quay.io/dataprep1/data-prep-kit/ededup-ray:latest"
-
-# The secret name containing the s3 credentials.
-S3_SECRET = "cos-lh-access"
+base_kfp_image = "quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest"
 
 # the name of the job script
 EXEC_SCRIPT_NAME: str = "-m dpk_ededup.ray.transform"
 
-# components
-base_kfp_image = "quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest"
-
 # path to kfp component specifications files
-component_spec_path = os.getenv("KFP_COMPONENT_SPEC_PATH", DEFAULT_KFP_COMPONENT_SPEC_PATH)
-
-def compute_execution_params(
-    worker_options: dict,  # ray worker configuration
-    actor_options: dict,  # actor's resource requirements
-    data_s3_config: str,  # s3 configuration
-    data_max_files: int,  # max files to process
-    data_num_samples: int,  # num samples to process
-    runtime_pipeline_id: str,  # pipeline id
-    runtime_job_id: str,  # job id
-    runtime_code_location: dict,  # code location
-    ededup_doc_column: str,  # key for accessing data
-    ededup_hash_cpu: float,  # number of CPUs per hash
-    ededup_use_snapshot: bool,  # flag to start from snapshot
-    ededup_snapshot_directory: str,  # snapshot directory
-    ededup_num_hashes: int,  # number of samples for parameters computation
-) -> dict:
-    """
-    Compute exact dedup execution parameters
-    :param worker_options: cluster parameters
-    :param actor_options: actor request requirements
-    :param ededup_n_samples: number of samples to use
-    :param data_s3_config - s3 config
-    :param data_max_files - max files to process
-    :param data_num_samples - num samples to process
-    :param runtime_pipeline_id - pipeline id
-    :param runtime_job_id - job id, or just a unique string
-    :param runtime_code_location - code location
-    :param ededup_doc_column - key for accessing data
-    :param ededup_hash_cpu - number of CPUs per hash
-    :param ededup_use_snapshot - flag to start from existing snapshot
-    :param ededup_snapshot_directory: str - snapshot directory
-    :param ededup_n_samples - umber of samples for parameters computation
-    :return: a dictionary with a Ray Job execution parameters
-    """
-    from runtime_utils import KFPUtils
-    return {
-        "data_s3_config": data_s3_config,
-        "data_max_files": data_max_files,
-        "data_num_samples": data_num_samples,
-        "runtime_num_workers": KFPUtils.default_compute_execution_params(str(worker_options), str(actor_options)),
-        "runtime_worker_options": str(actor_options),
-        "runtime_pipeline_id": runtime_pipeline_id,
-        "runtime_job_id": runtime_job_id,
-        "runtime_code_location": str(runtime_code_location),
-        "ededup_doc_column": ededup_doc_column,
-        "ededup_hash_cpu": ededup_hash_cpu,
-        "ededup_use_snapshot": ededup_use_snapshot,
-        "ededup_snapshot_directory": ededup_snapshot_directory,
-        "ededup_num_hashes": ededup_num_hashes,
-    }
+component_spec_path = os.getenv(
+   "KFP_COMPONENT_SPEC_PATH", DEFAULT_KFP_COMPONENT_SPEC_PATH
+)
 
 
 # KFPv1 and KFP2 uses different methods to create a component from a function. KFPv1 uses the
@@ -109,12 +60,12 @@ if os.getenv("KFPv2", "0") == "1":
     import uuid
 
     compute_exec_params_op = dsl.component_decorator.component(
-        func=compute_execution_params, base_image=base_kfp_image
+        func=ededup_compute_execution_params, base_image=base_kfp_image
     )
     
 else:
     compute_exec_params_op = comp.create_component_from_func(
-        func=compute_execution_params, base_image=base_kfp_image
+        func=ededup_compute_execution_params, base_image=base_kfp_image
     )
     run_id = dsl.RUN_ID_PLACEHOLDER
 
@@ -138,24 +89,21 @@ def ededup(
     ray_name: str = "ededup-kfp-ray",  # name of Ray cluster
     ray_run_id_KFPv2: str = "",   # Ray cluster unique ID used only in KFP v2
     # Add image_pull_secret and image_pull_policy to ray workers if needed
-    ray_head_options: dict = {"cpu": 1, 
-                              "memory": 8, 
-                              "image": task_image,
-                              },
+    ray_head_options: dict = {"cpu": 1, "memory": 4, "image": task_image},
     ray_worker_options: dict = {
         "replicas": 2,
         "max_replicas": 2,
         "min_replicas": 2,
-        "cpu": 4,
-        "memory": 8,
+        "cpu": 2,
+        "memory": 64,
         "image": task_image,
     },
     server_url: str = "http://kuberay-apiserver-service.kuberay.svc.cluster.local:8888",
     # data access. checkpointing is not supported by dedup
-    data_s3_config: str = str(s3_config),
-    data_s3_access_secret: str = S3_SECRET,
-    other_secrets: dict = OTHER_SECRETS,
-    data_max_files: int = 1,
+    data_s3_config: str = str(DATA_CONFIG),
+    data_s3_secret: str = LH_SECRET,
+    lh_token: dict = LH_TOKEN,
+    data_max_files: int = 2,
     data_num_samples: int = -1,
     # orchestrator
     runtime_actor_options: dict = {"num_cpus": 0.8},
@@ -167,7 +115,7 @@ def ededup(
     ededup_use_snapshot: bool = False,
     ededup_snapshot_directory: str = "",
     # data sampling
-    ededup_num_hashes: int = 1,
+    ededup_n_samples: int = 10,
     # additional parameters
     additional_params: str = '{"wait_interval": 2, "wait_cluster_ready_tmout": 400, "wait_cluster_up_tmout": 300, "wait_job_ready_tmout": 400, "wait_print_tmout": 30, "http_retries": 5, "delete_cluster_delay_minutes": 0}',
 ):
@@ -243,7 +191,7 @@ def ededup(
             ededup_hash_cpu=ededup_hash_cpu,
             ededup_use_snapshot=ededup_use_snapshot,
             ededup_snapshot_directory=ededup_snapshot_directory,
-            ededup_num_hashes=ededup_num_hashes,
+            ededup_n_samples=ededup_n_samples,
         )
         ComponentUtils.add_settings_to_component(compute_exec_params, ONE_HOUR_SEC * 2)
         if os.getenv("KFPv2", "0") == "1":
@@ -251,9 +199,11 @@ def ededup(
             # FIXME: Due to kubeflow/pipelines#10914, secret names cannot be provided as pipeline arguments.        
             # As a workaround, the secret name is hard coded.                       
             env2key = ComponentUtils.set_secret_key_to_env()            
-            kubernetes.use_secret_as_env(task=compute_exec_params, secret_name=S3_SECRET, secret_key_to_env=env2key)
+            kubernetes.use_secret_as_env(task=compute_exec_params, secret_name=data_s3_secret, secret_key_to_env=env2key)
         else:
-            ComponentUtils.set_s3_env_vars_to_component(compute_exec_params, data_s3_access_secret)
+            ComponentUtils.set_s3_env_vars_to_component(compute_exec_params, data_s3_secret)
+            ComponentUtils.add_secret_env_vars_to_component(compute_exec_params, LH_TOKEN)
+
 
         # start Ray cluster
         ray_cluster = create_ray_op(
@@ -262,19 +212,19 @@ def ededup(
             ray_head_options=ray_head_options,
             ray_worker_options=ray_worker_options,
             server_url=server_url,
-            other_secrets=other_secrets,
+            other_secrets=lh_token,
             additional_params=additional_params,
         )
         ComponentUtils.add_settings_to_component(ray_cluster, ONE_HOUR_SEC * 2)
         if os.getenv("KFPv2", "0") == "1":
             from kfp import kubernetes
+
             # FIXME: Due to kubeflow/pipelines#10914, secret names cannot be provided as pipeline arguments.
             # As a workaround, the secret name is hard coded.
             env2key = ComponentUtils.set_secret_key_to_env()
-            kubernetes.use_secret_as_env(task=ray_cluster, secret_name=S3_SECRET, secret_key_to_env=env2key)
+            kubernetes.use_secret_as_env(task=ray_cluster, secret_name=data_s3_secret, secret_key_to_env=env2key)
         else:
-            ComponentUtils.set_s3_env_vars_to_component(ray_cluster, data_s3_access_secret)
-
+            ComponentUtils.set_s3_env_vars_to_component(ray_cluster, data_s3_secret)
         ray_cluster.after(compute_exec_params)
         # Execute job
         execute_job = execute_ray_jobs_op(
@@ -292,11 +242,13 @@ def ededup(
             # FIXME: Due to kubeflow/pipelines#10914, secret names cannot be provided as pipeline arguments.
             # As a workaround, the secret name is hard coded.
             env2key = ComponentUtils.set_secret_key_to_env()
-            kubernetes.use_secret_as_env(task=execute_job, secret_name=S3_SECRET, secret_key_to_env=env2key)
+            kubernetes.use_secret_as_env(task=execute_job, secret_name=data_s3_secret, secret_key_to_env=env2key)
         else:
-            ComponentUtils.set_s3_env_vars_to_component(execute_job, data_s3_access_secret)
-            ComponentUtils.add_secret_env_vars_to_component(execute_job, OTHER_SECRETS)
+            ComponentUtils.set_s3_env_vars_to_component(execute_job, data_s3_secret)
+            ComponentUtils.add_secret_env_vars_to_component(execute_job, LH_TOKEN)
+
         execute_job.after(ray_cluster)
+
 
 if __name__ == "__main__":
     # Compiling the pipeline
