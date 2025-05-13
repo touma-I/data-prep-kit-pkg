@@ -107,7 +107,7 @@ class KFPUtils:
                 else:
                     res += f"--{key}={value} "
 
-        logger.info(f"request to execute: {res}")
+        logger.debug(f"request to execute: {res}")
         return res
 
     # Load a string that represents a json to python dictionary
