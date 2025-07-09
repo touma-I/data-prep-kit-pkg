@@ -186,7 +186,9 @@ class EdedupTransformBase(AbstractTableTransform):
             removed_column[0] = removed
             out_table = TransformUtils.add_column(table=out_table, name="removed", content=removed_column)
         # report statistics
-        stats = {"source_documents": table.num_rows, "result_documents": out_table.num_rows}
+        stats = {"source_documents": table.num_rows, 
+                 "result_documents": out_table.num_rows,
+                   "removed_documents": removed}
         return [out_table], stats
 
     def _process_cached_hashes(self, hd: dict[str, str]) -> list[str]:
