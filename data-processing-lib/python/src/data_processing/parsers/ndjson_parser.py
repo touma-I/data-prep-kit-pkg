@@ -34,21 +34,23 @@ def zipfile_from_ndjson(data: bytearray,
     with zipfile.ZipFile(_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
         ndx = 0
         for line in data.decode().splitlines():
-            if ndx == rows: 
+            if ndx == rows:
                 break
             _txt=line.strip()
-            if not _txt: 
+            if not _txt:
                 continue
+            try:
+               _branch = json.loads(_txt)
+               ## Traverse nested keys
+               for key in keys:
+                   _branch = _branch[key]
 
-            _branch = json.loads(_txt)
-            ## Traverse nested keys 
-            for key in keys:
-                _branch = _branch[key]
-            
-            # Create a file-like object for the extracted data
-            # Each entry in the zip will be a JSON string of the extracted data
-            zf.writestr(f'{prefix}_{ndx}.{keys[-1]}', 
+               # Create a file-like object for the extracted data
+               # Each entry in the zip will be a JSON string of the extracted data
+               zf.writestr(f'{prefix}_{ndx}.{keys[-1]}',
                         json.dumps(_branch, indent=2).encode('utf-8'))
+            except json.decoder.JSONDecodeError as e:
+               print(f"Error decoding JSON on ndx {ndx}: {e}")
             ndx = ndx + 1
 
     _zip.seek(0)  # Rewind the BytesIO object to the beginning
