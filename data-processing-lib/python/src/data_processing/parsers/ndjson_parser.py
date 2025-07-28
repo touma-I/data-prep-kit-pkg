@@ -16,7 +16,8 @@ import json, io, zipfile, os
         
 def zipfile_from_ndjson(data: bytearray,
                         keys: List[str] = None,
-                        rows: int=-1) -> bytearray:
+                        rows: int=-1,
+                        prefix: str="") -> bytearray:
     """
     Iterates over an NDJSON file, extracts specified keys from each JSON object,
     and creates an in-memory ZIP file containing the extracted data.
@@ -46,7 +47,7 @@ def zipfile_from_ndjson(data: bytearray,
             
             # Create a file-like object for the extracted data
             # Each entry in the zip will be a JSON string of the extracted data
-            zf.writestr(f'_{ndx}.{keys[-1]}', 
+            zf.writestr(f'{prefix}_{ndx}.{keys[-1]}', 
                         json.dumps(_branch, indent=2).encode('utf-8'))
             ndx = ndx + 1
 
@@ -156,7 +157,7 @@ def test_zipfile_from_enwiki(sourcefile):
             with open(sourcefile, 'rb') as fs:
                 data=bytearray(fs.read())
                 assert len(data) > 0
-                fw.write(zipfile_from_ndjson(data, keys=['article_body','html'], rows=rows))
+                fw.write(zipfile_from_ndjson(data, keys=['article_body','html'], rows=rows, prefix='test'))
     except FileNotFoundError as e:
         os.remove(f'{sourcefile}.zip')
         raise
