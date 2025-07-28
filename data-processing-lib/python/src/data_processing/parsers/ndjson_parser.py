@@ -12,7 +12,7 @@
 ################################################################################
 
 from typing import List, Callable, Any
-import json, io, zipfile
+import json, io, zipfile, os
         
 def zipfile_from_ndjson(data: bytearray,
                         keys: List[str] = None,
@@ -151,11 +151,15 @@ def articlefiles_from_enwiki(file_path: str, rows: int=-1):
 def test_zipfile_from_enwiki(sourcefile):
     rows = 2
     # this should produce a single zip file with 2 files
-    with open(f'{sourcefile}.zip', 'wb') as fw:
-        with open(sourcefile, 'rb') as fs:
-            data=bytearray(fs.read())
-            assert len(data) > 0
-            fw.write(zipfile_from_ndjson(data, keys=['article_body','html'], rows=rows))
+    try:
+        with open(f'{sourcefile}.zip', 'wb') as fw:
+            with open(sourcefile, 'rb') as fs:
+                data=bytearray(fs.read())
+                assert len(data) > 0
+                fw.write(zipfile_from_ndjson(data, keys=['article_body','html'], rows=rows))
+    except FileNotFoundError as e:
+        os.remove(f'{sourcefile}.zip')
+        raise
     with zipfile.ZipFile(f'{sourcefile}.zip', 'r') as zf:
             assert len(zf.namelist()) == rows
 
