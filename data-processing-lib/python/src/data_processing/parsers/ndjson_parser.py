@@ -12,11 +12,48 @@
 ################################################################################
 
 from typing import List, Callable, Any
-import json
-
-##from data_processing.utils import get_logger
-##logger = get_logger(__name__)
+import json, io, zipfile
         
+def zipfile_from_ndjson(data: bytearray,
+                        keys: List[str] = None,
+                        rows: int=-1) -> bytearray:
+    """
+    Iterates over an NDJSON file, extracts specified keys from each JSON object,
+    and creates an in-memory ZIP file containing the extracted data.
+
+    Args:
+        ndjson_filepath (str): The path to the NDJSON file.
+        selected_keys (list): A list of keys to extract from each JSON object.
+
+    Returns:
+        io.BytesIO: An in-memory BytesIO object containing the ZIP file.
+    """
+    _zip = io.BytesIO()
+
+    with zipfile.ZipFile(_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+        ndx = 0
+        for line in data.decode().splitlines():
+            if ndx == rows: 
+                break
+            _txt=line.strip()
+            if not _txt: 
+                continue
+
+            _branch = json.loads(_txt)
+            ## Traverse nested keys 
+            for key in keys:
+                _branch = _branch[key]
+            
+            # Create a file-like object for the extracted data
+            # Each entry in the zip will be a JSON string of the extracted data
+            zf.writestr(f'_{ndx}.{keys[-1]}', 
+                        json.dumps(_branch, indent=2).encode('utf-8'))
+            ndx = ndx + 1
+
+    _zip.seek(0)  # Rewind the BytesIO object to the beginning
+    return bytearray(_zip.getvalue())
+
+
 def rawblocks_from_json(data: bytearray,
                         process_element: Callable[[dict, Any], Any],
                         keys: List[str] = None,
@@ -110,11 +147,27 @@ def articlefiles_from_enwiki(file_path: str, rows: int=-1):
     rawfiles_from_ndjson(file_path, keys=['article_body'], rows=rows)
 
 
+
+def test_zipfile_from_enwiki(sourcefile):
+    rows = 2
+    # this should produce a single zip file with 2 files
+    with open(f'{sourcefile}.zip', 'wb') as fw:
+        with open(sourcefile, 'rb') as fs:
+            data=bytearray(fs.read())
+            assert len(data) > 0
+            fw.write(zipfile_from_ndjson(data, keys=['article_body','html'], rows=rows))
+    with zipfile.ZipFile(f'{sourcefile}.zip', 'r') as zf:
+            assert len(zf.namelist()) == rows
+
+
+
 # used for testing
 if __name__ == "__main__":
     # this should produce a single file: enwiki_namespace_0_0.ndjson_0_.html
-    htmlfiles_from_enwiki("enwiki_namespace_0_0.ndjson", keys=['article_body','html'], rows=1)
+    htmlfiles_from_enwiki("enwiki_namespace_0_0._3.ndjson", keys=['article_body','html'], rows=1)
     
     # this should produce two files: enwiki_namespace_0_0.ndjson_0_article_body.html and enwiki_namespace_0_0.ndjson_0_article_body.wikitext 
-    htmlfiles_from_enwiki("enwiki_namespace_0_0.ndjson", keys=['article_body'], rows=1)
+    htmlfiles_from_enwiki("enwiki_namespace_0_0._3.ndjson", keys=['article_body'], rows=1)
 
+    # this should produce a single zip file with 2 files
+    test_zipfile_from_enwiki("enwiki_namespace_0_0._3.ndjson")
