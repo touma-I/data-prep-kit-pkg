@@ -47,8 +47,7 @@ def zipfile_from_ndjson(data: bytearray,
 
                # Create a file-like object for the extracted data
                # Each entry in the zip will be a JSON string of the extracted data
-               zf.writestr(f'{prefix}_{ndx}.{keys[-1]}',
-                        json.dumps(_branch, indent=2).encode('utf-8'))
+               zf.writestr(f'{prefix}_{ndx}.{keys[-1]}', _branch)
             except json.decoder.JSONDecodeError as e:
                print(f"Error decoding JSON on ndx {ndx}: {e}")
             ndx = ndx + 1
