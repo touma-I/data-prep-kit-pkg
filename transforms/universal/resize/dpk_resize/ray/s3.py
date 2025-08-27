@@ -16,7 +16,7 @@ import sys
 
 from data_processing.utils import ParamsUtils
 from data_processing_ray.runtime.ray import RayTransformLauncher
-from transforms.universal.resize.dpk_resize.ray.runtime import ResizeRayTransformConfiguration
+from dpk_resize.ray.runtime import ResizeRayTransformConfiguration
 
 
 print(os.environ)
