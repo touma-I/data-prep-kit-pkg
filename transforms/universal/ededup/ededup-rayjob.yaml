@@ -7,6 +7,8 @@ kind: RayJob
 metadata:
   name: rayjob-ededup # Name of your RayCluster
 spec:
+  shutdownAfterJobFinishes: true
+  ttlSecondsAfterFinished: 10
   rayClusterSpec:
     rayVersion: '2.36.1' # Specify the Ray version
     headGroupSpec:
@@ -97,6 +99,8 @@ spec:
   entrypoint: >
     python -m dpk_ededup.ray.runtime 
     --run_locally False
+    --ededup_hash_cpu 0.5
+    --ededup_num_hashes 2
     --data_s3_config "{'input_folder': '$S3_BUCKET_PATH/$GW_EDEDUP_INPUT', 'output_folder': '$S3_BUCKET_PATH/$GW_EDEDUP_OUTPUT'}"
     --data_files_to_use "[ '.parquet' ]" 
     --data_max_files 2

@@ -14,7 +14,6 @@ TRANSFORM_NAME=$(shell basename `pwd`)
 ################################################################################
 TRANSFORM_PYTHON_SRC="-m dpk_$(TRANSFORM_NAME).runtime"
 TRANSFORM_RAY_SRC="-m dpk_$(TRANSFORM_NAME).ray.runtime"
-TRANSFORM_SPARK_SRC="-m dpk_$(TRANSFORM_NAME).spark.runtime"
 
 run-cli-python:
 	make venv
