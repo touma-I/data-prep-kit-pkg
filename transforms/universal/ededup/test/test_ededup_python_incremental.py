@@ -23,7 +23,7 @@ from dpk_ededup.transform_base import (
     snapshot_directory_cli_param,
     use_snapshot_cli_param
 )
-from dpk_ededup.transform_python import EdedupPythonTransformRuntimeConfiguration
+from dpk_ededup import EdedupPythonTransformRuntimeConfiguration
 
 
 class TestPythonEdedupTransform(AbstractTransformLauncherTest):

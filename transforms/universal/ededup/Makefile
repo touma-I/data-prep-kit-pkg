@@ -12,17 +12,20 @@ include $(REPOROOT)/transforms/.make.cicd.targets
 TRANSFORM_NAME=$(shell basename `pwd`)
 
 ################################################################################
+TRANSFORM_PYTHON_SRC="-m dpk_$(TRANSFORM_NAME).runtime"
+TRANSFORM_RAY_SRC="-m dpk_$(TRANSFORM_NAME).ray.runtime"
+TRANSFORM_SPARK_SRC="-m dpk_$(TRANSFORM_NAME).spark.runtime"
 
 run-cli-python:
 	make venv
 	source venv/bin/activate && \
-	python -m dpk_$(TRANSFORM_NAME).transform_python \
+	python -m dpk_$(TRANSFORM_NAME).runtime \
                 --data_local_config "{ 'input_folder' : 'test-data/input', 'output_folder' : 'test-data/expected'}"  \
 				--ededup_doc_column "contents" \
             	--ededup_doc_id "document_id"
 
 	source venv/bin/activate && \
-	python -m dpk_$(TRANSFORM_NAME).transform_python \
+	python -m dpk_$(TRANSFORM_NAME).runtime \
                 --data_local_config "{ 'input_folder' : 'test-data/input', 'output_folder' : 'test-data/incremental'}"  \
 				--ededup_doc_column "contents" \
             	--ededup_doc_id "document_id" \
@@ -33,7 +36,7 @@ run-cli-python:
 run-cli-ray:
 	make venv
 	source venv/bin/activate && \
-	python -m dpk_$(TRANSFORM_NAME).ray.transform \
+	python -m dpk_$(TRANSFORM_NAME).ray.runtime \
 				--run_locally True \
 				--ededup_num_hashes 2 \
                 --data_local_config "{ 'input_folder' : 'test-data-ray/input', 'output_folder' : 'test-data-ray/expected'}"  \
@@ -41,7 +44,7 @@ run-cli-ray:
             	--ededup_doc_id "document_id"
 
 	source venv/bin/activate && \
-	python -m dpk_$(TRANSFORM_NAME).ray.transform \
+	python -m dpk_$(TRANSFORM_NAME).ray.runtime \
 				--run_locally True \
 				--ededup_num_hashes 2 \
                 --data_local_config "{ 'input_folder' : 'test-data-ray/input', 'output_folder' : 'test-data-ray/incremental'}"  \

@@ -30,7 +30,7 @@ task_image = "quay.io/dataprep1/data-prep-kit/ededup-ray:latest"
 S3_SECRET = "s3-secret"
 
 # the name of the job script
-EXEC_SCRIPT_NAME: str = "-m dpk_ededup.ray.transform"
+EXEC_SCRIPT_NAME: str = "-m dpk_ededup.ray.runtime"
 
 # components
 base_kfp_image = "quay.io/dataprep1/data-prep-kit/kfp-data-processing:latest"

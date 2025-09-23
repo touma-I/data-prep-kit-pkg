@@ -21,7 +21,7 @@ from dpk_ededup.transform_base import (
     doc_column_name_cli_param,
     int_column_name_cli_param
 )
-from dpk_ededup.transform_python import EdedupPythonTransformRuntimeConfiguration
+from dpk_ededup import EdedupPythonTransformRuntimeConfiguration
 
 
 class TestPythonEdedupTransform(AbstractTransformLauncherTest):

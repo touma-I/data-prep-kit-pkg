@@ -79,7 +79,7 @@ def ededup(**kwargs: Any) -> str:
         add_data_access_params(transform_params, data_type, kwargs)
         add_transform_params(transform_params, kwargs)
         if runtime_type.strip().lower() == "ray":
-            from dpk_ededup.ray.transform import EdedupRayTransformRuntimeConfiguration
+            from dpk_ededup.ray import EdedupRayTransformRuntimeConfiguration
             from data_processing_ray.runtime.ray import RayTransformLauncher
 
             sys.argv = ParamsUtils.dict_to_req(d=transform_params)

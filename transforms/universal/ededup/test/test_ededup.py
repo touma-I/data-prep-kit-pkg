@@ -21,7 +21,7 @@ from dpk_ededup.transform_base import (
     doc_column_name_key,
     int_column_name_key
 )
-from dpk_ededup.transform_python import EdedupTransform
+from dpk_ededup import EdedupTransform
 
 
 class TestEdedupTransform(AbstractTableTransformTest):
