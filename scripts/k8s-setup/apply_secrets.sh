@@ -16,9 +16,9 @@ else
   echo "Creating Opaque secret lh-secret-s3"
   echo "#######################################################################"
 
-  S3_ENDPOINT_BASE64=`echo -n ${S3_ENDPOINT}| base64 --wrap 0`
-  S3_ACCESS_KEY_BASE64=`echo -n ${S3_ACCESS_KEY}| base64 --wrap 0`
-  S3_SECRET_KEY_BASE64=`echo -n ${S3_SECRET_KEY}| base64 --wrap 0`
+  S3_ENDPOINT_BASE64=`echo ${S3_ENDPOINT}| base64 --wrap 0`
+  S3_ACCESS_KEY_BASE64=`echo ${S3_ACCESS_KEY}| base64 --wrap 0`
+  S3_SECRET_KEY_BASE64=`echo ${S3_SECRET_KEY}| base64 --wrap 0`
 
 
 
