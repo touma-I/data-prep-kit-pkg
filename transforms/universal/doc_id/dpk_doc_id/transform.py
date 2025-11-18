@@ -190,3 +190,25 @@ class DocIDTransformConfigurationBase(TransformConfiguration):
         self.params = self.params | captured
         self.logger.info(f"Doc id parameters are : {self.params}")
         return True
+
+
+class DocIDTransform(DocIDTransformBase):
+    """
+    Implements schema modification of a pyarrow Table.
+    """
+
+    def __init__(self, config: dict[str, Any]):
+        """
+        Initialize based on the dictionary of configuration information.
+        """
+        # Make sure that the param name corresponds to the name used in apply_input_params method
+        super().__init__(config)
+        self.id_generator = config.get(id_generator_key, IDGenerator(config.get(start_id_key, 1)))
+
+    def _get_starting_id(self, n_rows: int) -> int:
+        """
+        Get starting ID
+        :param n_rows - number of rows in the table
+        :return: starting id for the table
+        """
+        return self.id_generator.get_ids(n_rows=n_rows)
