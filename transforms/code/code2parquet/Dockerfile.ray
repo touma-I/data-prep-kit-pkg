@@ -39,3 +39,7 @@ ENV BUILD_DATE $BUILD_DATE
 ENV GIT_COMMIT $GIT_COMMIT
 LABEL build-date=$BUILD_DATE
 LABEL git-commit=$GIT_COMMIT
+
+# Set log levels to debug during testing
+ENV DPK_LOG_LEVEL=DEBUG
+
